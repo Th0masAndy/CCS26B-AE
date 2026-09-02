@@ -1,0 +1,4 @@
+CompileFlags:
+  CompilationDatabase: build
+  Remove: [-std=gnu++14, -std=c++14, -std=gnu++17, -std=c++17]
+  Add:    [-std=c++20]

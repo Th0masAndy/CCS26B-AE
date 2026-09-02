@@ -1,0 +1,65 @@
+# Claim 3: unique-block evaluation
+
+We claim that **the runtime and communication evaluation of the receiver-sided
+unique-block protocols in the main-paper unique-block table is reproducible
+with this artifact**.
+
+## Experiment matrix
+
+The experiment evaluates normal and prefix modes over:
+
+- set size: $n=2^{12}$;
+- dimension: $d=2,4,6$;
+- threshold: $\delta=32,64,128,256,512$;
+- metric: $L_\infty$, $L_1$, and $L_2$;
+- repetitions: one by default.
+
+This gives 45 parameter tuples in each mode and 90 protocol runs in total. Every
+run enables correctness checking with four planted matches.
+
+## Experiment command
+
+From the artifact root, run:
+
+```bash
+bash claims/claim3/run.sh
+```
+
+For repeated measurements:
+
+```bash
+REPETITIONS=10 bash claims/claim3/run.sh
+```
+
+Results are written to `artifact-results/claim3/` unless
+`FPSI_RESULT_DIR` is set.
+
+## Resources
+
+- Machine: one supported x86-64 host, preferably otherwise idle;
+- Typical runtime: several hours, depending on the host.
+
+This claim already uses $n=2^{12}$. Peak RSS for the largest
+$d=6,\delta=512$ cases is:
+
+| Mode / metric | Peak RSS | Status |
+|---|---:|---|
+| Normal, $L_\infty$ | 198.5 GiB | measured, 4/4 correct |
+| Normal, $L_1/L_2$ | approximately 198.5 GiB | same bounded pre-metric OPPRF path; later arrays are small |
+| Prefix, $L_\infty$ | 5.42 GiB | measured, 4/4 correct |
+| Prefix, $L_1$ | 9.84 GiB | measured, 4/4 correct |
+| Prefix, $L_2$ | 9.85 GiB | measured, 4/4 correct |
+
+The normal protocols construct 1,612,185,600 key/value pairs at this largest
+point before the metric-specific branch. The local PRF is evaluated in bounded
+batches, reducing the measured $L_\infty$ peak from the 468.0 GiB unbatched
+baseline to 198.5 GiB without changing communication or correctness. L1 and L2
+use the same OPPRF input and encoding; their later arithmetic arrays contain
+only $n d=24,576$ entries and are comparatively negligible. A dedicated
+256 GiB host is recommended to leave headroom for the OS and allocator
+variation.
+The historical $n=2^{16}$ normal allocation reached 731.6 GiB before hitting
+the underlying 32-bit parameter-size limit, which is why this artifact does
+not request that configuration.
+
+See [expected.md](./expected.md) for output files and comparison criteria.
