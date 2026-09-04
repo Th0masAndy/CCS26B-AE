@@ -4,9 +4,9 @@ FPSI is a research prototype for fuzzy private set intersection under
 one-sided assumptions. It implements the unique-cell and unique-block protocol
 families for $L_\infty$, $L_1$, and $L_2$ distances.
 
-> **Artifact reviewer? Start with the three commands below.** They check the
+> **Artifact reviewer? Follow the three steps below.** Together they check the
 > host, build the complete project, validate every protocol family, and create
-> a small result summary.
+> a concise result summary.
 
 ## 🚀 Quick start
 
@@ -14,11 +14,42 @@ The reference platform is Ubuntu 24.04 on x86_64 with GCC 13. The CPU must
 provide AES, PCLMUL, SSE2, and SSE4.1. ARM64 and Apple Silicon, including AMD64
 emulation, are not supported.
 
-```bash
-./scripts/preflight.sh
-./scripts/build.sh
-./scripts/run_reproduction.sh --quick
-```
+1. **Check the environment**
+
+   Run the read-only preflight check. It verifies the operating system,
+   architecture, CPU instructions, compiler, memory, disk space, and basic tools.
+
+   ```bash
+   ./scripts/preflight.sh
+   ```
+
+   **Expected:** `✅ Preflight passed`.
+
+2. **Build FPSI**
+
+   The build script installs the required Ubuntu packages, fetches pinned
+   dependencies into `code/thirdparty/`, and creates `code/build/fpsi`. This step
+   requires root or `sudo`; set `FPSI_SKIP_SYSTEM_PACKAGES=1` when the packages are
+   already installed.
+
+   ```bash
+   ./scripts/build.sh
+   ```
+
+   **Expected:** `✅ Build complete`, followed by the path to the executable.
+
+3. **Run the quick validation**
+
+   Run six representative protocol cases plus the prefix-parameter guard. The
+   script checks planted matches automatically and writes raw and summarized
+   results to `artifact-results/`.
+
+   ```bash
+   ./scripts/run_reproduction.sh --quick
+   ```
+
+   **Expected:** `✅ [smoke] PASS`, followed by
+   `✅ Quick reproduction complete`.
 
 For a claim-by-claim evaluation roadmap, use [claims/README.md](./claims/README.md).
 Each claim has one command, explicit outputs, and objective pass criteria.
@@ -45,16 +76,12 @@ artifact-results/
 The build and smoke test need at least 16 GiB RAM. Claim 2 peaks at 62.8 GiB,
 while Claim 3's unique-block normal mode peaks at 198.5 GiB at $n=2^{12}$.
 Use a dedicated 256 GiB host for the complete evaluation. By default, the build
-script chooses
-conservative parallelism from the available CPUs and memory. Override it only
-when appropriate:
+script chooses conservative parallelism from the available CPUs and memory.
+Override it only when appropriate:
 
 ```bash
 JOBS=32 ./scripts/build.sh
 ```
-
-System packages are installed through `apt`; this step needs root or `sudo`.
-If they are already installed, use `FPSI_SKIP_SYSTEM_PACKAGES=1`.
 
 ### Optional Docker path
 
@@ -255,12 +282,12 @@ revision. Third-party code remains subject to its own license.
 <details>
 <summary><strong>Baseline implementations</strong></summary>
 
-| Work | Code | Paper |
-|---|---|---|
-| van Baarsen and Pu, EUROCRYPT 2024 | [code](https://github.com/sihangpu/fuzzy_PSI) | [paper](https://eprint.iacr.org/2024/330) |
-| Gao et al., ASIACRYPT 2024 | [code](https://github.com/ql70ql70/Fuzzy-Private-Set-Intersection-from-Fuzzy-Mapping) | [paper](https://eprint.iacr.org/2024/1462) |
-| Dang et al., CCS 2025 | [code](https://github.com/zhouxv/ourFuzzyPSI-C) | [paper](https://eprint.iacr.org/2025/1796) |
-| Bui et al., ASIACRYPT 2025 | [code](https://github.com/phuocchubeo123/SaPSI) | [paper](https://eprint.iacr.org/2025/907.pdf) |
+| Work | Ref |
+|---|---|
+| van Baarsen and Pu, EUROCRYPT 2024 | [code](https://github.com/sihangpu/fuzzy_PSI) \| [paper](https://eprint.iacr.org/2024/330) |
+| Gao et al., ASIACRYPT 2024 | [code](https://github.com/ql70ql70/Fuzzy-Private-Set-Intersection-from-Fuzzy-Mapping) \| [paper](https://eprint.iacr.org/2024/1462) |
+| Dang et al., CCS 2025 | [code](https://github.com/zhouxv/ourFuzzyPSI-C) \| [paper](https://eprint.iacr.org/2025/1796) |
+| Bui et al., ASIACRYPT 2025 | [code](https://github.com/phuocchubeo123/SaPSI) \| [paper](https://eprint.iacr.org/2025/907.pdf) |
 
 </details>
 
@@ -276,12 +303,14 @@ revision. Third-party code remains subject to its own license.
   its allowlist excludes builds, dependencies, results, downloaded projects,
   and private review correspondence.
 
-## Acknowledgements, citation, and license
+## Acknowledgements
 
 Parts of the prefix optimization are adapted from
 [Dang et al.](https://github.com/zhouxv/ourFuzzyPSI-C). We thank Peter Rindal
 for the open-source [secure-join](https://github.com/ladnir/secure-join) and
 [volePSI](https://github.com/ladnir/volepsi) libraries.
+
+## Citation
 
 ```bibtex
 @inproceedings{yang2026efficient,
@@ -292,5 +321,8 @@ for the open-source [secure-join](https://github.com/ladnir/secure-join) and
 }
 ```
 
-Machine-readable citation metadata is in [CITATION.cff](./CITATION.cff). FPSI
-is released under the [MIT License](./LICENSE).
+Machine-readable citation metadata is in [CITATION.cff](./CITATION.cff).
+
+## License
+
+FPSI is released under the [MIT License](./LICENSE).
