@@ -6,11 +6,12 @@
 #include <cstddef>
 #include <string_view>
 #include <vector>
-#include "fpsi/tools/utils.h"
+#include "fpsi/tool/utils.h"
 
 inline constexpr oc::u64 kBytesPerChunk = 1ULL << 30;
 inline constexpr oc::u64 kBlocksPerChunk = kBytesPerChunk / sizeof(oc::block);
 
+// No length negotiation: byte/block receive sizes and call order must match sends.
 void sendBytes(coproto::Socket &socket, const std::vector<oc::u8> &bytes);
 
 void recvBytes(coproto::Socket &socket, std::vector<oc::u8> &bytes);
@@ -19,6 +20,8 @@ void sendBlocks(coproto::Socket &socket, const std::vector<oc::block> &blocks);
 
 void recvBlocks(coproto::Socket &socket, std::vector<oc::block> &blocks);
 
+// choiceBits has one byte per point; selected points are appended in set order.
+// Pack coordinates as block(first, second), zero-padding an odd final coordinate.
 void transferElements(
     const PointSet &set,
     std::vector<oc::u8> &choiceBits,

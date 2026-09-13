@@ -9,16 +9,17 @@ read -r -a ns <<< "${FPSI_NS:-8 12 16}"
 dims=(2 4 6)
 deltas=(32 64 128 256 512)
 metrics=(0)
-REPETITIONS=${REPETITIONS:-1}
 TRIALS=${TRIALS:-1}
 VERIFY=${VERIFY:-1}
 
+if [[ ! $TRIALS =~ ^[1-9][0-9]*$ ]] || (( ${#TRIALS} > 10 )) || (( TRIALS > 2147483647 )); then
+    echo "error: TRIALS must be an integer between 1 and 2147483647" >&2
+    exit 2
+fi
+
 run_fpsi()
 {
-  local repetition
-  for ((repetition = 1; repetition <= REPETITIONS; ++repetition)); do
-    ./code/build/fpsi "$@" -inter 4 -try "$TRIALS" -v "$VERIFY"
-  done
+  ./code/build/fpsi "$@" -inter 4 -try "$TRIALS" -v "$VERIFY"
 }
 
 printf "[ProType]  [Assumption]   [Metric] [Dim] [Delta] [Size] [Com.(MB)] [Time(s)]\n"

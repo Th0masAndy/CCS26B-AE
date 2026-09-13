@@ -1,9 +1,9 @@
-#include "fpsi/mpc/mul.h"
+#include "fpsi/primitive/mul.h"
 #include <cstddef>
 #include <thread>
 #include <vector>
-#include "fpsi/tools/common.h"
-#include "fpsi/tools/utils.h"
+#include "fpsi/tool/common.h"
+#include "fpsi/tool/utils.h"
 
 using namespace osuCrypto;
 
@@ -19,7 +19,7 @@ MulSender::MulSender(uint64_t num_, coproto::Socket *socket_) : num(num_), socke
     send->configure(num * 64);
     send->mMultType = type;
 
-    prng = new PRNG(ZeroBlock);
+    prng = new PRNG(sysRandomSeed());
 }
 
 MulSender::~MulSender()
@@ -67,7 +67,7 @@ MulRecver::MulRecver(uint64_t num_, coproto::Socket *socket_) : num(num_), socke
     recv->configure(num * 64);
     recv->mMultType = type;
 
-    prng = new PRNG(OneBlock);
+    prng = new PRNG(sysRandomSeed());
 }
 
 MulRecver::~MulRecver()

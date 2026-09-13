@@ -4,15 +4,14 @@ FPSI is a research prototype for fuzzy private set intersection under
 one-sided assumptions. It implements the unique-cell and unique-block protocol
 families for $L_\infty$, $L_1$, and $L_2$ distances.
 
-> **Artifact reviewer? Follow the three steps below.** Together they check the
-> host, build the complete project, validate every protocol family, and create
-> a concise result summary.
+
+## 🖥️ Platform requirements
+
+- **Reference platform:** Ubuntu 24.04 on x86_64 with GCC 13.
+- **Required CPU instructions:** AES, PCLMUL, SSE2, and SSE4.1.
+- **Unsupported platforms:** ARM64 and Apple Silicon, including AMD64 emulation.
 
 ## 🚀 Quick start
-
-The reference platform is Ubuntu 24.04 on x86_64 with GCC 13. The CPU must
-provide AES, PCLMUL, SSE2, and SSE4.1. ARM64 and Apple Silicon, including AMD64
-emulation, are not supported.
 
 1. **Check the environment**
 
@@ -23,7 +22,6 @@ emulation, are not supported.
    ./scripts/preflight.sh
    ```
 
-   **Expected:** `✅ Preflight passed`.
 
 2. **Build FPSI**
 
@@ -36,23 +34,14 @@ emulation, are not supported.
    ./scripts/build.sh
    ```
 
-   **Expected:** `✅ Build complete`, followed by the path to the executable.
-
 3. **Run the quick validation**
 
-   Run six representative protocol cases plus the prefix-parameter guard. The
-   script checks planted matches automatically and writes raw and summarized
-   results to `artifact-results/`.
+   Run a quick correctness check and save the results to `artifact-results/`.
 
    ```bash
    ./scripts/run_reproduction.sh --quick
    ```
 
-   **Expected:** `✅ [smoke] PASS`, followed by
-   `✅ Quick reproduction complete`.
-
-For a claim-by-claim evaluation roadmap, use [claims/README.md](./claims/README.md).
-Each claim has one command, explicit outputs, and objective pass criteria.
 
 Expected time on an 8-core machine:
 
@@ -73,15 +62,9 @@ artifact-results/
 └── summary.md
 ```
 
-The build and smoke test need at least 16 GiB RAM. Claim 2 peaks at 62.8 GiB,
-while Claim 3's unique-block normal mode peaks at 198.5 GiB at $n=2^{12}$.
-Use a dedicated 256 GiB host for the complete evaluation. By default, the build
-script chooses conservative parallelism from the available CPUs and memory.
-Override it only when appropriate:
-
-```bash
-JOBS=32 ./scripts/build.sh
-```
+The build and smoke test need at least 16 GiB RAM. The full unique-cell evaluation
+peaks at 62.8 GiB, while unique-block normal mode peaks at 198.5 GiB at $n=2^{12}$.
+Use a dedicated 256 GiB host for the complete evaluation.
 
 ### Optional Docker path
 
@@ -92,91 +75,29 @@ docker build -f code/Dockerfile -t fpsi-ae .
 docker run --rm fpsi-ae ./scripts/run_reproduction.sh --quick
 ```
 
-## ✅ What the artifact checks
+## File input
 
-The quick workflow generates deterministic synthetic point sets, plants four
-fuzzy matches, runs representative protocols, and checks the recovered result
-against the planted ground truth. A mismatch terminates the script.
-
-| Assumption | Direction | Normal | Prefix |
-|---|---|---|---|
-| uniqueCell | receiver | L0, L1, L2 | L0, L1, L2 |
-| uniqueCell | sender | L0, L1, L2 | L0 |
-| uniqueBlock | receiver | L0, L1, L2 | L0, L1, L2 |
-
-`L0` denotes $L_\infty$. Prefix executions require `delta` to be a power of
-two. Synthetic test inputs are deterministic, while cryptographic primitives
-use fresh randomness.
-
-CTest exposes the same automated checks:
+Use `-i <directory>` to read `sender_data.txt` and `recver_data.txt` from that
+directory and write matching sender points to `output.txt` in the same directory:
 
 ```bash
-ctest --test-dir code/build --output-on-failure
+./code/build/fpsi -assumption 0 -p 2 -delta 32 -i ./my-data
 ```
 
-## 🧪 Full reproduction
+Each nonblank line is one point: unsigned 64-bit decimal coordinates separated
+by spaces or tabs, with no header. For example:
 
-Run the complete parameter matrices with:
-
-```bash
-./scripts/run_reproduction.sh --full
+```text
+0 0
+128 128
 ```
 
-This evaluates 180 protocol runs across the paper's two parameter tables. The
-unique-cell table has 45 parameter tuples and runs receiver normal/prefix for
-L0 (90 runs); the unique-block table has 15 parameter tuples and runs receiver
-normal/prefix for L0, L1, and L2 (90 runs). Unique-cell uses
-`n=2^8, 2^12, 2^16`, while unique-block uses `n=2^12`. Both use `d=2, 4, 6`
-and `delta=32, 64, 128, 256, 512`. The run can take several hours and should
-use an idle, large-memory machine.
+Both files must have the same point count and dimension, with no duplicate points
+within either file. The point count and dimension are inferred from the files.
+Inputs must satisfy the selected protocol's one-sided assumption (unique-cell
+or unique-block).
 
-The workflow is configurable without editing any script:
-
-| Variable | Default | Purpose |
-|---|---:|---|
-| `REPETITIONS` | 1 | independent executions of every configuration |
-| `TRIALS` | 1 | internal trials averaged by one execution |
-| `VERIFY` | 1 | enable planted-match correctness checks |
-| `FPSI_RESULT_DIR` | `artifact-results` | result directory |
-
-### Reduced $n=2^{12}$ reproduction
-
-To keep every mode, metric, dimension, threshold, and correctness check while
-limiting both tables to $n=2^{12}$, run:
-
-```bash
-./scripts/run_reproduction.sh --light
-```
-
-This performs 30 unique-cell and 90 unique-block performance runs, in addition
-to the smoke suite. It reduces the unique-cell runtime, but not the overall
-memory peak: unique-block normal reaches 198.5 GiB. Use a 256 GiB host
-for the combined workflow. To run only the genuinely lightweight unique-cell
-claim, use `bash claims/claim2/run.sh --light` (8.45 GiB measured peak; 16 GiB
-recommended). The unique-block prefix subset also stays below 10 GiB, but the
-normal subset does not. See [the claims guide](./claims/README.md) for details.
-
-For example:
-
-```bash
-REPETITIONS=10 TRIALS=1 VERIFY=1 \
-  FPSI_RESULT_DIR=artifact-results/full-10x \
-  ./scripts/run_reproduction.sh --full
-```
-
-The generated summary groups identical configurations and reports the mean and
-population standard deviation of runtime and communication. Communication
-should remain stable for a fixed revision and parameter set. Runtime depends on
-the processor, compiler, memory bandwidth, system load, virtualization, and
-network conditions; compare trends and relative costs on the same machine.
-
-Measure peak memory for one configuration with:
-
-```bash
-./scripts/measure_case.sh large-case \
-  -assumption 0 -p 0 -nn 16 -d 6 -delta 512 \
-  -inter 4 -try 1 -v 1
-```
+Without the `-i` option, the program uses randomly generated simulation data.
 
 ## Troubleshooting
 
@@ -192,24 +113,21 @@ If a build was interrupted, do not pre-create `code/thirdparty/` contents manual
 The build script is resumable and reports the exact incomplete directory when
 manual cleanup is necessary.
 
-## Repository guide
+## Repository structure
 
 ```text
-code/                 self-contained implementation root
-├── .clangd           editor and language-server configuration
+code/                 self-contained implementation root        
 ├── CMakeLists.txt    build and CTest configuration
 ├── Dockerfile        optional reference environment
-├── Dockerfile.dockerignore
-│                    container build-context exclusions
 ├── README.md         implementation guide
 ├── fpsi/             source code grouped by module
 ├── build/            generated executable and CMake files
 └── thirdparty/       generated pinned dependencies
 scripts/              build, test, benchmark, analysis, and release tools
 claims/               paper claims, experiment commands, and pass criteria
-README.md              reviewer entry point
-LICENSE                MIT license
-CITATION.cff           machine-readable citation metadata
+README.md             reviewer entry point
+LICENSE               MIT license
+CITATION.cff          machine-readable citation metadata
 ```
 
 Reviewers only need this file. Researchers who want to reuse or modify the
@@ -228,8 +146,7 @@ implementation can continue with [code/README.md](./code/README.md).
 | Claim-by-claim evaluation | `claims/README.md` |
 | Optional network emulation | `scripts/throttle.sh` |
 
-<details>
-<summary><strong>Command-line reference and examples</strong></summary>
+## Command-line Flags
 
 Run `./code/build/fpsi -h` for built-in help.
 
@@ -239,10 +156,11 @@ Run `./code/build/fpsi -h` for built-in help.
 | `-assumption` | One-sided assumption | `0`: unique cell, `1`: unique block |
 | `-prefix` | Prefix optimization | flag; `delta` must be a power of two |
 | `-sender` | Protocol direction | flag; select sender-sided unique-cell |
-| `-n`, `-nn` | Set size | exact size or its base-2 logarithm |
+| `-i` | Input directory | `sender_data.txt`, `recver_data.txt`; writes `output.txt` |
+| `-n`, `-nn` | Set size | exact size or its base-2 logarithm; inferred with `-i` |
 | `-d` | Dimension | integer, default `2` |
 | `-delta` | Distance threshold | integer, default `2` |
-| `-inter` | Planted match count | integer, default `4` |
+| `-inter` | Planted match count | integer, default `floor(log2(n))` |
 | `-try` | Internal trial count | integer, default `1` |
 | `-v` | Correctness/debug output | `0`: off, `1`: on |
 
@@ -261,8 +179,6 @@ Examples:
 # Receiver-sided unique-block, prefix, L2
 ./code/build/fpsi -assumption 1 -prefix -p 2 -nn 8 -d 4 -delta 32 -v 1
 ```
-
-</details>
 
 <details>
 <summary><strong>Pinned source dependencies</strong></summary>
@@ -291,10 +207,55 @@ revision. Third-party code remains subject to its own license.
 
 </details>
 
+## Full reproduction
+
+Run the complete parameter matrices (180 performance configurations plus smoke
+checks):
+
+```bash
+./scripts/run_reproduction.sh --full
+```
+
+**Estimated runtime: 5–6 hours. Peak memory: approximately 200 GiB RSS.**
+A host with **256 GiB RAM** is recommended.
+
+### Reduced $n=2^{12}$ reproduction (optional)
+
+Run both tables at $n=2^{12}$ (120 performance configurations plus smoke checks):
+
+```bash
+./scripts/run_reproduction.sh --light
+```
+
+**Estimated runtime: 2–3 hours. Peak memory: approximately 200 GiB RSS.**
+A host with **256 GiB RAM** is still recommended: this mode reduces the
+unique-cell workload, but leaves unique-block unchanged, so the overall memory
+peak does not decrease.
+
+Both time budgets are estimates based on measured per-configuration runtimes
+on our AMD EPYC 9554 host, assuming `TRIALS=1` and excluding build time.
+Peak memory is based on prior measurements. Slower hosts or additional trials
+need more time.
+
+## Claims
+
+1. **[Claim 1: Protocol correctness](./claims/claim1/claim.md).** All implemented
+   FPSI protocols correctly recover fuzzy intersections under
+   the corresponding one-sided assumptions.
+2. **[Claim 2: Unique-cell evaluation](./claims/claim2/claim.md).** The runtime
+   and communication of the receiver-sided unique-cell $L_\infty$ protocols,
+   in normal and prefix modes, are reproducible for the paper's parameter settings (Table 2).
+3. **[Claim 3: Unique-block evaluation](./claims/claim3/claim.md).** The runtime
+   and communication of the receiver-sided unique-block $L_\infty$, $L_1$, and
+   $L_2$ protocols, in normal and prefix modes, are reproducible for the paper's
+   parameter settings (Table 3). 
+
+For a claim-by-claim evaluation roadmap, use [claims/README.md](./claims/README.md).
+
 ## Limitations and safety
 
 - This is a research prototype, not production software or a security audit.
-- Inputs are generated in memory; application-data ingestion is out of scope.
+- Inputs are generated in memory by default; `-i` accepts equal-sized point files.
 - Both parties run as threads in one process over local sockets.
 - Network emulation is never enabled automatically. `scripts/throttle.sh`
   changes a host qdisc, requires `sudo`, and must be cleaned up with

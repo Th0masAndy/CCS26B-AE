@@ -40,6 +40,9 @@ private:
     osuCrypto::PRNG *prng;
 };
 
+// Output shares add to low(sendShares ^ recvShares) modulo 2^64.
+// Use equally sized inputs and zero-initialized outputs; outputs are accumulated.
+// roleInverse swaps sockets, not input/output pairing.
 void runB2a(
     std::vector<oc::block> &sendShares,
     std::vector<oc::block> &recvShares,

@@ -2,7 +2,7 @@
 #include <cryptoTools/Common/block.h>
 #include <libOTe/Triple/SilentOtTriple/SilentOtTriple.h>
 #include <libOTe/TwoChooseOne/Silent/SilentOtExtSender.h>
-#include "fpsi/tools/utils.h"
+#include "fpsi/tool/utils.h"
 #include <volePSI/Defines.h>
 #include <volePSI/Paxos.h>
 

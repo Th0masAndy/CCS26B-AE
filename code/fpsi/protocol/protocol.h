@@ -1,14 +1,11 @@
 #pragma once
 
-#include "fpsi/tools/config.h"
+#include "fpsi/tool/config.h"
 
-// Public one-sided FPSI protocol entry points.
-//
-// Every function runs both parties locally over the sockets constructed by
-// the implementation. Inputs, planted matches, trial count, metric, and
-// reporting behavior are supplied through FpsiConfig. `L0` denotes the
-// L-infinity metric; `Lp` accepts metric 1 or 2 in the current executable;
-// `Px` denotes the prefix-optimized construction.
+// Local benchmarks: generate inputs, run both parties, and report trial means.
+// L0 = L-infinity; Lp = L1/L2; Px = prefix optimization.
+// Time starts at "local preprocess done"; per-trial input preparation is included.
+// Communication uses MiB (labeled MB).
 
 // Unique-cell assumption, receiver-sided protocols.
 void fuzzyPsiUniqueCellL0(const FpsiConfig &config);

@@ -43,7 +43,7 @@ def parse_lines(lines: list[str]) -> list[dict[str, object]]:
     return rows
 
 
-def summarize(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+def summarize(rows: list[dict[str, object]], trials: int = 1) -> list[dict[str, object]]:
     grouped: dict[tuple[object, ...], list[dict[str, object]]] = defaultdict(list)
     for row in rows:
         grouped[tuple(row[field] for field in KEY_FIELDS)].append(row)
@@ -55,22 +55,18 @@ def summarize(rows: list[dict[str, object]]) -> list[dict[str, object]]:
         runtime = [float(row["runtime"]) for row in observations]
         summary = dict(zip(KEY_FIELDS, key))
         summary.update(
-            repetitions=len(observations),
+            trials=len(observations) * trials,
             communication_mb_mean=statistics.fmean(communication),
-            communication_mb_std=statistics.pstdev(communication),
             runtime_s_mean=statistics.fmean(runtime),
-            runtime_s_std=statistics.pstdev(runtime),
         )
         summaries.append(summary)
     return summaries
 
 
 OUTPUT_FIELDS = KEY_FIELDS + (
-    "repetitions",
+    "trials",
     "communication_mb_mean",
-    "communication_mb_std",
     "runtime_s_mean",
-    "runtime_s_std",
 )
 
 
@@ -89,18 +85,17 @@ def write_markdown(path: Path, rows: list[dict[str, object]]) -> None:
         handle.write("# 📊 FPSI Result Summary\n\n")
         handle.write("Generated from raw FPSI benchmark logs.\n\n")
         handle.write(
-            "| Mode | Assumption | Side | Metric | d | Delta | n | Reps | "
-            "Comm. MB (mean ± sd) | Time s (mean ± sd) |\n"
+            "| Mode | Assumption | Side | Metric | d | Delta | n | Trials | "
+            "Comm. MB (mean) | Time s (mean) |\n"
         )
         handle.write("|---|---|---|---:|---:|---:|---:|---:|---:|---:|\n")
         for row in rows:
             handle.write(
                 f"| {row['mode']} | {row['assumption']} | {row['side']} | "
                 f"L{row['metric']} | {row['dimension']} | {row['delta']} | "
-                f"{row['size']} | {row['repetitions']} | "
-                f"{row['communication_mb_mean']:.2f} ± "
-                f"{row['communication_mb_std']:.2f} | "
-                f"{row['runtime_s_mean']:.2f} ± {row['runtime_s_std']:.2f} |\n"
+                f"{row['size']} | {row['trials']} | "
+                f"{row['communication_mb_mean']:.2f} | "
+                f"{row['runtime_s_mean']:.2f} |\n"
             )
 
 
@@ -112,13 +107,22 @@ def self_test() -> None:
             "unrelated diagnostic output",
         ]
     )
-    result = summarize(rows)
+    result = summarize(rows, trials=3)
     assert len(result) == 1
-    assert result[0]["repetitions"] == 2
+    assert result[0]["trials"] == 6
     assert math.isclose(float(result[0]["communication_mb_mean"]), 11.0)
-    assert math.isclose(float(result[0]["communication_mb_std"]), 1.0)
     assert math.isclose(float(result[0]["runtime_s_mean"]), 3.0)
     print("✓ Result parser self-test passed")
+
+
+def positive_trials(value: str) -> int:
+    try:
+        trials = int(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("trials must be a positive integer") from error
+    if not 1 <= trials <= 2147483647:
+        raise argparse.ArgumentTypeError("trials must be between 1 and 2147483647")
+    return trials
 
 
 def main() -> int:
@@ -126,6 +130,10 @@ def main() -> int:
     parser.add_argument("logs", nargs="*", type=Path, help="raw FPSI log files")
     parser.add_argument("--csv", type=Path, help="CSV output path")
     parser.add_argument("--markdown", type=Path, help="Markdown output path")
+    parser.add_argument(
+        "--trials", type=positive_trials, default=1,
+        help="internal trials averaged in each input result row (default: 1)",
+    )
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
 
@@ -138,7 +146,7 @@ def main() -> int:
     lines: list[str] = []
     for path in args.logs:
         lines.extend(path.read_text(encoding="utf-8", errors="replace").splitlines())
-    rows = summarize(parse_lines(lines))
+    rows = summarize(parse_lines(lines), trials=args.trials)
     if not rows:
         print("error: no FPSI result rows found", file=sys.stderr)
         return 1

@@ -4,11 +4,12 @@
 #include <coproto/Socket/AsioSocket.h>
 #include <cstdint>
 #include <vector>
-#include "fpsi/mpc/opprf/OKVS.h"
-#include "fpsi/mpc/opprf/SoOPRF.h"
+#include "fpsi/primitive/OKVS.h"
+#include "fpsi/primitive/SoOPRF.h"
 
 extern bool LOG;
 
+// Programmed keys must be distinct; queryKeys determines output-share order.
 struct SoOpprfInput {
     std::vector<oc::block> keys;
     std::vector<oc::block> values;
@@ -41,6 +42,9 @@ private:
     OKVS *okvs;
 };
 
+// Matched queries reconstruct values via sendShares ^ recvShares; misses are unflagged.
+// Size outputs to queryKeys.size(); sendShares/recvShares stay on sockets[0]/[1].
+// roleInverse swaps the programming/query roles, not those buffer associations.
 void runSoOpprf(
     std::vector<oc::block> &keys,
     std::vector<oc::block> &values,
@@ -50,6 +54,7 @@ void runSoOpprf(
     std::array<coproto::AsioSocket, 2> &sockets,
     bool roleInverse = false);
 
+// encoding must use PRF-masked values, the same SoOPRF key, and numKeyValues.
 void runSoOpprf(
     const std::vector<oc::block> &encoding,
     oc::u64 numKeyValues,

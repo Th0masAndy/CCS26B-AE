@@ -22,24 +22,22 @@ set(FPSI_SOURCES
     fpsi/main.cpp
 
     # Shared configuration and utilities
-    fpsi/tools/common.cpp
-    fpsi/tools/config.cpp
+    fpsi/tool/common.cpp
+    fpsi/tool/config.cpp
     fpsi/data/genData.cpp
+    fpsi/data/fileIO.cpp
 
-    # Reusable MPC primitives
-    fpsi/mpc/b2a.cpp
-    fpsi/mpc/cmp.cpp
-    fpsi/mpc/eq.cpp
-    fpsi/mpc/mul.cpp
-    fpsi/mpc/mux.cpp
-
-    # OKVS and shared-output OPRF/OPPRF
-    fpsi/mpc/opprf/OKVS.cpp
-    fpsi/mpc/opprf/SoOPRF.cpp
-    fpsi/mpc/opprf/SoOPPRF.cpp
+    # Reusable protocol primitives
+    fpsi/primitive/b2a.cpp
+    fpsi/primitive/cmp.cpp
+    fpsi/primitive/eq.cpp
+    fpsi/primitive/mul.cpp
+    fpsi/primitive/mux.cpp
+    fpsi/primitive/OKVS.cpp
+    fpsi/primitive/SoOPRF.cpp
+    fpsi/primitive/SoOPPRF.cpp
 
     # FPSI protocol compositions
-    fpsi/protocol/filter.cpp
     fpsi/protocol/uniqueBlock.cpp
     fpsi/protocol/uniqueCell.cpp
 )
@@ -63,6 +61,33 @@ endif()
 include(CTest)
 if(BUILD_TESTING)
     add_test(NAME artifact_cli_help COMMAND fpsi -h)
+    add_test(
+        NAME artifact_file_input
+        COMMAND python3 ${CMAKE_SOURCE_DIR}/../scripts/test_file_input.py $<TARGET_FILE:fpsi>
+    )
+    set_tests_properties(artifact_file_input PROPERTIES TIMEOUT 240)
+    add_test(
+        NAME artifact_boundary_inputs
+        COMMAND python3 ${CMAKE_SOURCE_DIR}/../scripts/test_boundary_inputs.py
+            --binary $<TARGET_FILE:fpsi>
+            --output-dir ${CMAKE_CURRENT_BINARY_DIR}/boundary-results
+    )
+    set_tests_properties(artifact_boundary_inputs PROPERTIES TIMEOUT 600)
+    add_test(
+        NAME artifact_boundary_workflow
+        COMMAND python3 ${CMAKE_SOURCE_DIR}/../scripts/test_boundary_workflow.py
+    )
+    set_tests_properties(artifact_boundary_workflow PROPERTIES TIMEOUT 60)
+    add_test(
+        NAME artifact_trials_workflow
+        COMMAND python3 ${CMAKE_SOURCE_DIR}/../scripts/test_trials.py
+    )
+    set_tests_properties(artifact_trials_workflow PROPERTIES TIMEOUT 120)
+    add_test(
+        NAME artifact_paper_comparison
+        COMMAND python3 ${CMAKE_SOURCE_DIR}/../scripts/test_paper_comparison.py
+    )
+    set_tests_properties(artifact_paper_comparison PROPERTIES TIMEOUT 60)
     add_test(
         NAME artifact_smoke
         COMMAND bash ${CMAKE_SOURCE_DIR}/../scripts/run_smoke.sh $<TARGET_FILE:fpsi>

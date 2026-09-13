@@ -38,12 +38,15 @@ private:
     coproto::Socket *socket;
 };
 
+// Returns recvInputs indices from set intersection, not position-wise equality.
 void runPeqt(
     std::vector<block> &sendInputs,
     std::vector<block> &recvInputs,
     std::vector<u64> &matches,
     std::array<coproto::AsioSocket, 2> &sockets);
 
+// prefixLen must cover the interval decomposition. Matches index expanded
+// receiver prefixes; divide by prefixLen to recover distance-slot indices.
 void runIntervalTest(
     const std::vector<u64> &sendDis,
     const std::vector<u64> &recvDis,

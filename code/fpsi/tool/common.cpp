@@ -1,4 +1,4 @@
-#include "fpsi/tools/common.h"
+#include "fpsi/tool/common.h"
 #include <algorithm>
 #include <coproto/Common/macoro.h>
 #include <coproto/Socket/AsioSocket.h>
@@ -8,7 +8,7 @@
 #include <libOTe/TwoChooseOne/Silent/SilentOtExtSender.h>
 #include <unordered_set>
 #include <vector>
-#include "fpsi/tools/utils.h"
+#include "fpsi/tool/utils.h"
 
 using namespace oc;
 using namespace std;
@@ -93,7 +93,11 @@ void transferElements(
         coproto::sync_wait(recv.genSilentBaseOts(otPrng, sock[1]));
 
         std::vector<block> messages(n);
-        BitVector choices(choiceBits.data(), choiceBits.size());
+        BitVector choices(choiceBits.size());
+        // choiceBits stores one byte per choice; BitVector stores packed bits.
+        for (u64 choiceIndex = 0; choiceIndex < choiceBits.size(); ++choiceIndex) {
+            choices[choiceIndex] = choiceBits[choiceIndex] != 0;
+        }
 
         coproto::sync_wait(recv.receive(choices, messages, otPrng, sock[1]));
 

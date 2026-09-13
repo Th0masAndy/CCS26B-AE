@@ -1,4 +1,4 @@
-#include "fpsi/mpc/opprf/OKVS.h"
+#include "fpsi/primitive/OKVS.h"
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Common/Timer.h>
 #include <algorithm>
@@ -27,6 +27,7 @@ u64 resolveThreadCount(u64 requested, u64 itemCount)
 
 OKVS::OKVS(u64 numItems, u64 weight_, u64 ssp, u64 binSize_)
 {
+    // Public layout seed; private solve randomness is generated separately.
     paxos.init(numItems, binSize_, weight_, ssp, volePSI::PaxosParam::GF128, oc::ZeroBlock);
     param = paxos.mPaxosParam;
 }

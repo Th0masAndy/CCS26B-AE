@@ -5,6 +5,13 @@ set -euo pipefail
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 MODE=${1:---quick}
 RESULT_DIR=${FPSI_RESULT_DIR:-"$ROOT_DIR/artifact-results"}
+TRIALS=${TRIALS:-1}
+export TRIALS
+
+if [[ ! $TRIALS =~ ^[1-9][0-9]*$ ]] || (( ${#TRIALS} > 10 )) || (( TRIALS > 2147483647 )); then
+    echo "error: TRIALS must be an integer between 1 and 2147483647" >&2
+    exit 2
+fi
 
 mkdir -p "$RESULT_DIR"
 echo "🔬 FPSI ${MODE#--} reproduction"
@@ -14,7 +21,7 @@ echo
 
 summarize()
 {
-    "$ROOT_DIR/scripts/summarize_results.py" "$@" \
+    "$ROOT_DIR/scripts/summarize_results.py" "$@" --trials "$TRIALS" \
         --csv "$RESULT_DIR/summary.csv" \
         --markdown "$RESULT_DIR/summary.md"
     echo "📊 Summary: $RESULT_DIR/summary.md"

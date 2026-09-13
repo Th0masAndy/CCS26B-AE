@@ -1,4 +1,4 @@
-#include "fpsi/mpc/cmp.h"
+#include "fpsi/primitive/cmp.h"
 #include <coproto/Common/macoro.h>
 #include <cryptoTools/Common/BitVector.h>
 #include <cryptoTools/Common/Defines.h>

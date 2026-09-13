@@ -12,10 +12,11 @@ The experiment evaluates both normal and prefix modes over:
 - dimension: $d=2,4,6$;
 - threshold: $\delta=32,64,128,256,512$;
 - metric: $L_\infty$;
-- repetitions: one by default.
+- internal trials per configuration: one by default (`TRIALS`).
 
-This gives 45 parameter tuples in each mode and 90 protocol runs in total. Every
-run enables correctness checking with four planted matches.
+This gives 45 parameter tuples in each mode and 90 program executions in total.
+Each execution runs `TRIALS` internal trials and reports their average. Every
+trial enables correctness checking with four planted matches.
 
 ## Experiment command
 
@@ -28,7 +29,7 @@ bash claims/claim2/run.sh
 For repeated measurements:
 
 ```bash
-REPETITIONS=10 bash claims/claim2/run.sh
+TRIALS=10 bash claims/claim2/run.sh
 ```
 
 Results are written to `artifact-results/claim2/` unless
@@ -45,6 +46,19 @@ bash claims/claim2/run.sh --light
 This keeps every dimension, threshold, mode, and correctness check, but reduces
 the matrix to 15 tuples per mode (30 protocol runs). Results are written to
 `artifact-results/claim2-light/` by default.
+
+## Comparison with Table 2
+
+[paper-results.csv](./paper-results.csv) contains the 90 Ours/Ours-Px entries
+transcribed from [Table 2](./table2.png). After the benchmark, the wrapper
+plots paper and measured runtimes against `delta`, using original seconds.
+Dimensions and modes have separate panels; each linear y-axis starts at zero
+and automatically expands to include both series with headroom.
+
+The full run produces three SVG figures, one per set size; `--light` produces
+one for `n=4096`.
+Open `paper-comparison.md` to view the figures, or open the SVG files in a browser.
+See the [plotting guide](../paper-comparison.md) for details.
 
 ## Resources
 

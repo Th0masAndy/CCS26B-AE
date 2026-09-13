@@ -10,6 +10,8 @@ using namespace oc;
 using namespace osuCrypto;
 using namespace std;
 
+// Use distinct keys and identical constructor parameters for encoding/decoding.
+// Unknown keys decode without a non-membership flag.
 class OKVS {
 public:
     OKVS(u64 numItems, u64 weight_ = 3, u64 ssp = 40, u64 binSize_ = 1 << 14);
@@ -18,6 +20,7 @@ public:
 
     void encode(const vector<block> &keys, const vector<block> &values, vector<block> &encoding);
 
+    // numThreads == 0 selects a bounded automatic worker count.
     vector<block> decode(const vector<block> &encoding, const vector<block> &keys, u64 numThreads = 0);
 
     void decode(const vector<block> &encoding, const vector<block> &keys, vector<block> &values, u64 numThreads = 0);
@@ -29,7 +32,7 @@ private:
     volePSI::PaxosParam param;
 };
 
-// A sparse OKVS based on Paxos, including encoding, decoding, and computing sparse index.
+// Legacy sparse-OKVS declarations; their implementation is not compiled.
 class SparseOKVS {
 public:
     u64 sparseSize;

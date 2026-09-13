@@ -11,3 +11,10 @@ if [[ ! -x "$ROOT_DIR/code/build/fpsi" ]]; then
 fi
 
 FPSI_RESULT_DIR="$RESULT_DIR" "$ROOT_DIR/scripts/run_reproduction.sh" --quick
+
+python3 "$ROOT_DIR/scripts/test_boundary_inputs.py" \
+    --binary "$ROOT_DIR/code/build/fpsi" \
+    --output-dir "$RESULT_DIR/boundary" \
+    --trials "${TRIALS:-1}" | tee "$RESULT_DIR/boundary.txt"
+
+echo "✅ Claim 1 complete"

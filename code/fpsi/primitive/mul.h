@@ -37,6 +37,9 @@ private:
     osuCrypto::PRNG *prng;
 };
 
+// Output shares add to sendIn * recvIn modulo 2^64; inputs are private factors.
+// Use equally sized inputs and zero-initialized outputs; outputs are accumulated.
+// roleInverse swaps sockets, not input/output pairing.
 void runMul(
     std::vector<uint64_t> &sendIn,
     std::vector<uint64_t> &recvIn,

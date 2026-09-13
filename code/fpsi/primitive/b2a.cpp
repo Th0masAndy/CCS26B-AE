@@ -1,11 +1,11 @@
-#include "fpsi/mpc/b2a.h"
+#include "fpsi/primitive/b2a.h"
 #include <cryptoTools/Common/BitVector.h>
 #include <cryptoTools/Common/block.h>
 #include <cstring>
 #include <thread>
 #include <vector>
-#include "fpsi/tools/common.h"
-#include "fpsi/tools/utils.h"
+#include "fpsi/tool/common.h"
+#include "fpsi/tool/utils.h"
 
 using namespace oc;
 
@@ -21,7 +21,7 @@ B2aSender::B2aSender(uint64_t num_, coproto::Socket *socket_) : num(num_), socke
     sender->configure(num * 64);
     sender->mMultType = type;
 
-    prng = new PRNG(ZeroBlock);
+    prng = new PRNG(sysRandomSeed());
 }
 
 B2aSender::~B2aSender()
@@ -72,7 +72,7 @@ B2aRecver::B2aRecver(uint64_t num_, coproto::Socket *socket_) : num(num_), socke
     receiver->configure(num * 64);
     receiver->mMultType = type;
 
-    prng = new PRNG(OneBlock);
+    prng = new PRNG(sysRandomSeed());
 }
 
 B2aRecver::~B2aRecver()

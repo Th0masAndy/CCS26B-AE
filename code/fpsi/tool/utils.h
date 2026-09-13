@@ -17,6 +17,7 @@
 
 using namespace osuCrypto;
 
+// Row-major points; operator[] returns a span invalidated by storage reallocation.
 class PointSet {
 public:
     PointSet() = default;
@@ -142,6 +143,8 @@ inline void uint8_to_bool(uint8_t *data, uint8_t input, int length)
     }
 }
 
+// block(length, base) represents values with value >> length == base.
+// High 64 bits hold the discarded-bit count; low 64 bits hold the remaining value.
 // Decompose the interval [start, end] using an improved method in appendix
 inline std::vector<block> getIntervalPrefix(u64 start, u64 end, int shift = 0)
 {
@@ -232,6 +235,7 @@ inline u64 firstLessThan(u64 x, const std::vector<u64> &U)
     return *it;
 }
 
+// U must contain sorted, distinct lengths including zero.
 inline std::vector<block> getIntervalPrefixSet(u64 start, u64 end, const std::vector<u64> &U)
 {
     std::vector<block> finalPrefixes;

@@ -11,7 +11,7 @@ running a claim:
 
 | Claim | Paper evidence | Command | Typical scope |
 |---|---|---|---|
-| [1. Protocol correctness](./claim1/claim.md) | All implemented one-sided protocol families | `bash claims/claim1/run.sh` | Quick, below 2 minutes |
+| [1. Protocol correctness](./claim1/claim.md) | All implemented one-sided protocol families | `bash claims/claim1/run.sh` | Smoke + matching boundaries, a few minutes |
 | [2. Unique-cell evaluation](./claim2/claim.md) | Main-paper unique-cell performance table | `bash claims/claim2/run.sh` | 90 runs, several hours |
 | [3. Unique-block evaluation](./claim3/claim.md) | Main-paper unique-block performance table | `bash claims/claim3/run.sh` | 90 runs, several hours |
 
@@ -19,7 +19,7 @@ running a claim:
 
 | Experiment | Largest set size | Peak-RSS basis | Recommended RAM |
 |---|---:|---:|---:|
-| Claim 1 | small smoke cases | below the build requirement | 16 GiB |
+| Claim 1 | small correctness cases | below the build requirement | 16 GiB |
 | Claim 2, full | $2^{16}$ | 62.8 GiB measured | 80 GiB |
 | Claim 2, `--light` | $2^{12}$ | 8.45 GiB measured | 16 GiB |
 | Claim 3, prefix only | $2^{12}$ | 9.85 GiB measured | 16 GiB |
@@ -34,7 +34,7 @@ bash claims/claim3/run.sh
 ```
 
 This performs 120 performance runs (30 unique-cell and 90 unique-block), plus
-the quick correctness suite. Although every performance case uses $n=2^{12}$,
+the smoke and matching-boundary correctness suites. Although every performance case uses $n=2^{12}$,
 unique-block normal needs 198.5 GiB at $d=6,\delta=512$; provision
 256 GiB for this combined workflow. The command reduces unique-cell runtime,
 but does not reduce the overall peak below Claim 3's normal-mode requirement.

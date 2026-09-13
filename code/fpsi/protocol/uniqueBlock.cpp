@@ -9,22 +9,17 @@
 #include <cryptoTools/Common/Timer.h>
 #include <cryptoTools/Common/block.h>
 #include <cryptoTools/Crypto/PRNG.h>
-#include "fpsi/mpc/opprf/SoOPPRF.h"
-#include "fpsi/mpc/b2a.h"
-#include "fpsi/tools/common.h"
-#include "fpsi/mpc/eq.h"
+#include "fpsi/primitive/SoOPPRF.h"
+#include "fpsi/primitive/b2a.h"
+#include "fpsi/tool/common.h"
+#include "fpsi/primitive/eq.h"
 #include "fpsi/data/genData.h"
-#include "fpsi/mpc/mul.h"
-#include "fpsi/mpc/mux.h"
-#include "fpsi/tools/param.h"
+#include "fpsi/data/fileIO.h"
+#include "fpsi/primitive/mul.h"
+#include "fpsi/primitive/mux.h"
+#include "fpsi/tool/param.h"
 #include "fpsi/protocol/protocol.h"
-#include "fpsi/tools/utils.h"
-
-// Memory optimization:
-// Normal uniqueBlock may produce more than 2^31 programmed KVs, so they should
-// not be encoded by one OKVS instance. Hash cells with a public seed, generate
-// and encode fixed-capacity shards sequentially, and equally pad every shard to
-// hide its distribution.
+#include "fpsi/tool/utils.h"
 
 using namespace oc;
 
@@ -35,6 +30,7 @@ enum class PrefixDistanceMode {
     Augmented,
 };
 
+// Layout: [batch][point][dimension][side][prefix]; localOffsets has no batch axis.
 struct PrefixDistanceInput {
     SoOpprfInput soOpprf;
     std::vector<u64> localOffsets;
@@ -66,6 +62,7 @@ u64 encodedPrefixCountFor(int delta)
     return it->second;
 }
 
+// Keep encoded length fixed despite input-dependent prefix decompositions.
 void padKeyValues(SoOpprfInput &input, u64 expectedCount)
 {
     if (input.keys.size() != input.values.size()) {
@@ -84,6 +81,7 @@ void padKeyValues(SoOpprfInput &input, u64 expectedCount)
     }
 }
 
+// Expand programmed keys over neighbors; unique-cell expands queries instead.
 SoOpprfInput makeNormalInput(
     const PointSet &sendSet,
     const PointSet &recvSet,
@@ -138,8 +136,34 @@ SoOpprfInput makeNormalInput(
     return input;
 }
 
-SoOpprfInput makePrefixL0Input(
+std::vector<block> makePrefixL0QueryKeys(
     const PointSet &sendSet,
+    u64 n,
+    std::size_t dimension,
+    int delta,
+    const std::vector<u64> &prefixLens)
+{
+    const u64 prefixLen = prefixLens.size();
+    std::vector<block> queryKeys(n * dimension * prefixLen);
+    for (u64 pointIndex = 0; pointIndex < n; ++pointIndex) {
+        const auto cellId = cell(sendSet[pointIndex], 2 * delta);
+        for (u64 coordinateIndex = 0; coordinateIndex < dimension; ++coordinateIndex) {
+            const auto prefixes = getPrefixSet(sendSet[pointIndex][coordinateIndex], prefixLens);
+            if (prefixes.size() != prefixLen) {
+                throw std::runtime_error("uniqueBlock query prefix count mismatch");
+            }
+            for (u64 prefixIndex = 0; prefixIndex < prefixLen; ++prefixIndex) {
+                queryKeys[
+                    pointIndex * dimension * prefixLen
+                    + coordinateIndex * prefixLen + prefixIndex] =
+                    blake3_hash(cellId, coordinateIndex, prefixes[prefixIndex]);
+            }
+        }
+    }
+    return queryKeys;
+}
+
+SoOpprfInput makePrefixL0Input(
     const PointSet &recvSet,
     u64 n,
     std::size_t dimension,
@@ -148,29 +172,12 @@ SoOpprfInput makePrefixL0Input(
     u64 encodedPrefixCount)
 {
     const u64 cellCount = 1ULL << dimension;
-    const u64 prefixLen = prefixLens.size();
     const u64 encodedCount =
         n * dimension * cellCount * encodedPrefixCount;
 
     SoOpprfInput input;
     input.keys.reserve(encodedCount);
     input.values.reserve(encodedCount);
-    input.queryKeys.resize(n * dimension * prefixLen);
-
-    for (u64 i = 0; i < n; ++i) {
-        const auto cellId = cell(sendSet[i], 2 * delta);
-        for (u64 j = 0; j < dimension; ++j) {
-            const auto prefixes = getPrefixSet(sendSet[i][j], prefixLens);
-            if (prefixes.size() != prefixLen) {
-                throw std::runtime_error("uniqueBlock query prefix count mismatch");
-            }
-            for (u64 k = 0; k < prefixLen; ++k) {
-                input.queryKeys[
-                    i * dimension * prefixLen + j * prefixLen + k] =
-                    blake3_hash(cellId, j, prefixes[k]);
-            }
-        }
-    }
 
     for (u64 i = 0; i < n; ++i) {
         const auto neighbors = neigh(recvSet[i], delta);
@@ -318,6 +325,8 @@ PrefixDistanceInput makePrefixDistanceInput(
     return input;
 }
 
+// First batch: high words select matches, low words carry distance shares.
+// Standard L2 stores squared-distance shares in the second batch's high words.
 PrefixMpcInput makePrefixMpcInput(
     const std::vector<block> &shares,
     u64 valueCount,
@@ -404,38 +413,42 @@ void runPrefixDistance(
     const FpsiConfig &config,
     PrefixDistanceMode mode)
 {
+    // Flow: prefix OPPRF -> B2A -> reconstruct coordinate distance powers
+    // -> select prefixes -> sum dimensions -> threshold test -> OT transfer.
     const auto &prefixLens = prefixLensFor(config.delta);
     const u64 encodedPrefixCount =
         encodedPrefixCountFor(config.delta);
 
     auto dataPrng = makeDataPrng();
-    auto testCase = generateFpsiTestCase(
-        config, dataPrng);
+    auto syntheticInput = config.input == nullptr
+        ? generateFpsiTestCase(config, dataPrng) : FpsiTestCase {};
+    const auto &testCase = config.input == nullptr ? syntheticInput : *config.input;
     const auto &sendSet = testCase.sendSet;
     const auto &recvSet = testCase.recvSet;
     const auto &expectedIndices = testCase.expectedOutputIndices;
-
-    oc::Timer timer;
-    timer.setTimePoint("begin");
-    auto input = makePrefixDistanceInput(
-        sendSet,
-        recvSet,
-        config.n,
-        config.dimension,
-        config.delta,
-        config.metric,
-        prefixLens,
-        encodedPrefixCount,
-        mode);
-    auto sockets = coproto::AsioSocket::makePair();
-    auto preprocessingDone = timer.setTimePoint("preprocess done");
 
     const u64 deltaPow =
         integerPow(config.delta, config.metric);
     const u64 disPrefixLen = static_cast<u64>(
         std::ceil(std::log2(deltaPow + 1)));
 
+    oc::Timer timer;
+    timer.setTimePoint("begin");
+    auto sockets = coproto::AsioSocket::makePair();
+    auto preprocessingDone = timer.setTimePoint("local preprocess done");
+
     for (int trial = 0; trial < config.trials; ++trial) {
+        auto input = makePrefixDistanceInput(
+            sendSet,
+            recvSet,
+            config.n,
+            config.dimension,
+            config.delta,
+            config.metric,
+            prefixLens,
+            encodedPrefixCount,
+            mode);
+        timer.setTimePoint("input preparation done");
         std::vector<block> recvOpprfShares(
             input.soOpprf.queryKeys.size());
         std::vector<block> sendOpprfShares(
@@ -504,6 +517,7 @@ void runPrefixDistance(
                     + recvArithShares[i + input.valueCount];
             }
         } else {
+            // Augmented L2 uses a shared square instead of a second OPPRF batch.
             std::vector<u64> shiftedSendShares(input.valueCount);
             for (u64 i = 0; i < input.valueCount; ++i) {
                 shiftedSendShares[i] =
@@ -566,6 +580,9 @@ void runPrefixDistance(
         if (config.verbose) {
             correctCheck(choiceBits, expectedIndices);
         }
+        if (config.output != nullptr && trial == config.trials - 1) {
+            captureFpsiOutput(config, transferredElements);
+        }
     }
 
     auto end = timer.setTimePoint("OT done");
@@ -589,13 +606,16 @@ void runPrefixDistance(
 
 void fuzzyPsiUniqueBlockPxL0(const FpsiConfig &config)
 {
+    // Flow: prefix OPPRF -> select matching prefixes -> XOR dimensions
+    // -> equality test -> OT transfer.
     const auto &prefixLens = prefixLensFor(2 * config.delta);
     const u64 encodedPrefixCount =
         encodedPrefixCountFor(2 * config.delta);
 
     auto dataPrng = makeDataPrng();
-    auto testCase = generateFpsiTestCase(
-        config, dataPrng);
+    auto syntheticInput = config.input == nullptr
+        ? generateFpsiTestCase(config, dataPrng) : FpsiTestCase {};
+    const auto &testCase = config.input == nullptr ? syntheticInput : *config.input;
     const auto &sendSet = testCase.sendSet;
     const auto &recvSet = testCase.recvSet;
     const auto &expectedIndices = testCase.expectedOutputIndices;
@@ -603,7 +623,6 @@ void fuzzyPsiUniqueBlockPxL0(const FpsiConfig &config)
     oc::Timer timer;
     timer.setTimePoint("begin");
     auto input = makePrefixL0Input(
-        sendSet,
         recvSet,
         config.n,
         config.dimension,
@@ -611,16 +630,19 @@ void fuzzyPsiUniqueBlockPxL0(const FpsiConfig &config)
         prefixLens,
         encodedPrefixCount);
     auto sockets = coproto::AsioSocket::makePair();
-    auto preprocessingDone = timer.setTimePoint("preprocess done");
-
     const u64 prefixLen = prefixLens.size();
+    std::vector<block> sendShares(config.n * config.dimension * prefixLen);
+    std::vector<block> recvShares(config.n * config.dimension * prefixLen);
+    auto preprocessingDone = timer.setTimePoint("local preprocess done");
+
     for (int trial = 0; trial < config.trials; ++trial) {
-        std::vector<block> sendShares(input.queryKeys.size());
-        std::vector<block> recvShares(input.queryKeys.size());
+        auto queryKeys = makePrefixL0QueryKeys(
+            sendSet, config.n, config.dimension, config.delta, prefixLens);
+        timer.setTimePoint("input preparation done");
         runSoOpprf(
             input.keys,
             input.values,
-            input.queryKeys,
+            queryKeys,
             sendShares,
             recvShares,
             sockets);
@@ -658,6 +680,9 @@ void fuzzyPsiUniqueBlockPxL0(const FpsiConfig &config)
         if (config.verbose) {
             correctCheck(choiceBits, expectedIndices);
         }
+        if (config.output != nullptr && trial == config.trials - 1) {
+            captureFpsiOutput(config, transferredElements);
+        }
     }
 
     auto end = timer.setTimePoint("OT done");
@@ -689,26 +714,30 @@ void fuzzyPsiUniqueBlockPxAugLp(const FpsiConfig &config)
 
 void fuzzyPsiUniqueBlockL0(const FpsiConfig &config)
 {
+    // Flow: neighbor-expanded OPPRF -> XOR dimensions -> equality test
+    // -> OT transfer of matching sender points.
     auto dataPrng = makeDataPrng();
-    auto testCase = generateFpsiTestCase(
-        config, dataPrng);
+    auto syntheticInput = config.input == nullptr
+        ? generateFpsiTestCase(config, dataPrng) : FpsiTestCase {};
+    const auto &testCase = config.input == nullptr ? syntheticInput : *config.input;
     const auto &sendSet = testCase.sendSet;
     const auto &recvSet = testCase.recvSet;
     const auto &expectedIndices = testCase.expectedOutputIndices;
 
     oc::Timer timer;
     timer.setTimePoint("begin");
-    auto input = makeNormalInput(
-        sendSet,
-        recvSet,
-        config.n,
-        config.dimension,
-        config.delta,
-        0);
     auto sockets = coproto::AsioSocket::makePair();
-    auto preprocessingDone = timer.setTimePoint("preprocess done");
+    auto preprocessingDone = timer.setTimePoint("local preprocess done");
 
     for (int trial = 0; trial < config.trials; ++trial) {
+        auto input = makeNormalInput(
+            sendSet,
+            recvSet,
+            config.n,
+            config.dimension,
+            config.delta,
+            0);
+        timer.setTimePoint("input preparation done");
         std::vector<block> sendShares(input.queryKeys.size());
         std::vector<block> recvShares(input.queryKeys.size());
         runSoOpprf(
@@ -738,6 +767,9 @@ void fuzzyPsiUniqueBlockL0(const FpsiConfig &config)
         if (config.verbose) {
             correctCheck(choiceBits, expectedIndices);
         }
+        if (config.output != nullptr && trial == config.trials - 1) {
+            captureFpsiOutput(config, transferredElements);
+        }
     }
 
     auto end = timer.setTimePoint("OT done");
@@ -759,31 +791,35 @@ void fuzzyPsiUniqueBlockL0(const FpsiConfig &config)
 
 void fuzzyPsiUniqueBlockLp(const FpsiConfig &config)
 {
+    // Flow: neighbor-expanded distance OPPRF -> B2A -> sum dimensions
+    // -> test against delta^metric -> OT transfer.
     auto dataPrng = makeDataPrng();
-    auto testCase = generateFpsiTestCase(
-        config, dataPrng);
+    auto syntheticInput = config.input == nullptr
+        ? generateFpsiTestCase(config, dataPrng) : FpsiTestCase {};
+    const auto &testCase = config.input == nullptr ? syntheticInput : *config.input;
     const auto &sendSet = testCase.sendSet;
     const auto &recvSet = testCase.recvSet;
     const auto &expectedIndices = testCase.expectedOutputIndices;
-
-    oc::Timer timer;
-    timer.setTimePoint("begin");
-    auto input = makeNormalInput(
-        sendSet,
-        recvSet,
-        config.n,
-        config.dimension,
-        config.delta,
-        config.metric);
-    auto sockets = coproto::AsioSocket::makePair();
-    auto preprocessingDone = timer.setTimePoint("preprocess done");
 
     const u64 deltaPow =
         integerPow(config.delta, config.metric);
     const u64 prefixLen = static_cast<u64>(
         std::ceil(std::log2(deltaPow + 1)));
 
+    oc::Timer timer;
+    timer.setTimePoint("begin");
+    auto sockets = coproto::AsioSocket::makePair();
+    auto preprocessingDone = timer.setTimePoint("local preprocess done");
+
     for (int trial = 0; trial < config.trials; ++trial) {
+        auto input = makeNormalInput(
+            sendSet,
+            recvSet,
+            config.n,
+            config.dimension,
+            config.delta,
+            config.metric);
+        timer.setTimePoint("input preparation done");
         std::vector<block> sendShares(input.queryKeys.size());
         std::vector<block> recvShares(input.queryKeys.size());
         runSoOpprf(
@@ -826,6 +862,9 @@ void fuzzyPsiUniqueBlockLp(const FpsiConfig &config)
         transferElements(sendSet, choiceBits, transferredElements, sockets);
         if (config.verbose) {
             correctCheck(choiceBits, expectedIndices);
+        }
+        if (config.output != nullptr && trial == config.trials - 1) {
+            captureFpsiOutput(config, transferredElements);
         }
     }
 

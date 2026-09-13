@@ -1,4 +1,4 @@
-#include "fpsi/mpc/opprf/SoOPRF.h"
+#include "fpsi/primitive/SoOPRF.h"
 #include <array>
 #include <coproto/Common/macoro.h>
 #include <coproto/Socket/AsioSocket.h>
@@ -15,7 +15,7 @@ SoOPRFSender::SoOPRFSender(uint64_t num_, uint64_t numThreads_, bool useOle_, co
     sender->mUseMod2F4Ot = !useOle;
     // socket[0]->setExecutor(*pool);
     // socket[1]->setExecutor(*pool);
-    prng = new PRNG(oc::ZeroBlock);
+    prng = new PRNG(oc::sysRandomSeed());
 
     AltModPrf::KeyType senderKey = AltModPrf::KeyType({
         block(0, 1),
@@ -63,6 +63,7 @@ SoOPRFSender::~SoOPRFSender()
     delete sender;
     delete prng;
     delete ole;
+    delete pool;
 }
 
 SoOPRFRecver::SoOPRFRecver(uint64_t num_, uint64_t numThreads_, bool useOle_, coproto::Socket *socket_)
@@ -75,7 +76,7 @@ SoOPRFRecver::SoOPRFRecver(uint64_t num_, uint64_t numThreads_, bool useOle_, co
     recver->mUseMod2F4Ot = !useOle;
     // socket[0]->setExecutor(*pool);
     // socket[1]->setExecutor(*pool);
-    prng = new PRNG(oc::OneBlock);
+    prng = new PRNG(oc::sysRandomSeed());
 
     // AltModPrf::KeyType kk;
 
@@ -117,4 +118,5 @@ SoOPRFRecver::~SoOPRFRecver()
     delete recver;
     delete prng;
     delete ole;
+    delete pool;
 }

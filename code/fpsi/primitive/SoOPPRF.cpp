@@ -1,9 +1,9 @@
-#include "fpsi/mpc/opprf/SoOPPRF.h"
+#include "fpsi/primitive/SoOPPRF.h"
 #include <algorithm>
 #include <stdexcept>
 #include <thread>
-#include "fpsi/mpc/opprf/SoOPRF.h"
-#include "fpsi/tools/common.h"
+#include "fpsi/primitive/SoOPRF.h"
+#include "fpsi/tool/common.h"
 
 namespace {
 

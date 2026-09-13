@@ -1,10 +1,10 @@
-#include "fpsi/mpc/eq.h"
+#include "fpsi/primitive/eq.h"
 #include <cryptoTools/Common/block.h>
 #include <cryptoTools/Crypto/PRNG.h>
 #include <stdexcept>
 #include <thread>
 #include <vector>
-#include "fpsi/tools/utils.h"
+#include "fpsi/tool/utils.h"
 
 namespace {
 
@@ -61,7 +61,7 @@ PEqTSender::PEqTSender(uint64_t num_, uint64_t numThreads_, bool noCompress_, co
     : num(num_), numThreads(numThreads_), noCompress(noCompress_), socket(socket_)
 {
     send = new RsPsiSender();
-    send->init(num, num, 40, oc::ZeroBlock, false, numThreads);
+    send->init(num, num, 40, oc::sysRandomSeed(), false, numThreads);
 
     auto type = oc::DefaultMultType;
 
@@ -87,7 +87,7 @@ PEqTRecver::PEqTRecver(uint64_t num_, uint64_t numThreads_, bool noCompress_, co
     : num(num_), numThreads(numThreads_), noCompress(noCompress_), socket(socket_)
 {
     recv = new RsPsiReceiver();
-    recv->init(num, num, 40, oc::ZeroBlock, false, numThreads);
+    recv->init(num, num, 40, oc::sysRandomSeed(), false, numThreads);
 
     auto type = oc::DefaultMultType;
 

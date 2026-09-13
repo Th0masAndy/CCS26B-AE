@@ -1,6 +1,6 @@
 #include "fpsi/data/genData.h"
 #include <cmath>
-#include "fpsi/tools/common.h"
+#include "fpsi/tool/common.h"
 
 namespace {
 

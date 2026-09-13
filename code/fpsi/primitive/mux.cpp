@@ -1,4 +1,4 @@
-#include "fpsi/mpc/mux.h"
+#include "fpsi/primitive/mux.h"
 #include <coproto/Socket/Socket.h>
 #include <coproto/coproto.h>
 #include <cryptoTools/Common/BitVector.h>
@@ -16,9 +16,9 @@
 #include <volePSI/GMW/Gmw.h>
 #include <volePSI/Paxos.h>
 #include <volePSI/config.h>
-#include "fpsi/tools/common.h"
-#include "fpsi/mpc/cmp.h"
-#include "fpsi/tools/utils.h"
+#include "fpsi/tool/common.h"
+#include "fpsi/primitive/cmp.h"
+#include "fpsi/tool/utils.h"
 
 void ssPEQT(u32 idx, std::vector<block> &input, BitVector &out, Socket &chl, u32 numThreads)
 {
@@ -69,7 +69,7 @@ MuxSender::MuxSender(uint64_t num_, coproto::Socket *socket_) : num(num_), socke
     recver->configure(num);
     recver->mMultType = type;
 
-    prng = new PRNG(ZeroBlock);
+    prng = new PRNG(sysRandomSeed());
 }
 
 MuxSender::~MuxSender()
@@ -366,7 +366,7 @@ MuxRecver::MuxRecver(uint64_t num_, coproto::Socket *socket_) : num(num_), socke
     recver->configure(num);
     recver->mMultType = type;
 
-    prng = new PRNG(OneBlock);
+    prng = new PRNG(sysRandomSeed());
 }
 
 MuxRecver::~MuxRecver()

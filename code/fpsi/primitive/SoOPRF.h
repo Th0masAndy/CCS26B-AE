@@ -8,6 +8,8 @@
 
 using namespace secJoin;
 
+// Borrows socket and owns internal state; do not copy these adapters.
+// Benchmark setup retains a fixed PRF key and synthetic key-OT material.
 // so-OPRF with input \mathbb{F}_3 and output \mathbb{F}_2
 class SoOPRFSender {
 public:

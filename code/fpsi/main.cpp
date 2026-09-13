@@ -1,7 +1,9 @@
 #include <coproto/Socket/AsioSocket.h>
 #include <iostream>
+#include <optional>
+#include "fpsi/data/fileIO.h"
 #include <string_view>
-#include "fpsi/tools/common.h"
+#include "fpsi/tool/common.h"
 #include "cryptoTools/Common/CLP.h"
 #include "fpsi/protocol/protocol.h"
 
@@ -18,11 +20,13 @@ void printHelp(const char *program)
         << "  -assumption <0|1>  assumption: 0 = unique cell (default), 1 = unique block\n"
         << "  -prefix            enable prefix optimization; delta must be a power of two\n"
         << "  -sender            use the sender-sided protocol\n"
+        << "  -i <directory>     read sender_data.txt and recver_data.txt; write output.txt\n"
+        << "                     infer n/d from files; ignore -n/-nn/-d/-inter\n"
         << "  -n <integer>       input set size\n"
         << "  -nn <integer>      log2 input set size (default: 10)\n"
         << "  -d <integer>       dimension (default: 2)\n"
         << "  -delta <integer>   distance threshold (default: 2)\n"
-        << "  -inter <integer>   planted intersection size\n"
+        << "  -inter <integer>   planted intersection size (default: floor(log2(n)))\n"
         << "  -try <integer>     number of benchmark runs (default: 1)\n"
         << "  -v <0|1>           verbose output (default: 0)\n"
         << "  -h, --help         show this help and exit\n";
@@ -88,7 +92,7 @@ void runOneSidedReceiver(
 
 } // namespace
 
-int main(int argc, char **argv)
+int main(int argc, char **argv) try
 {
     if (helpRequested(argc, argv)) {
         printHelp(argv[0]);
@@ -96,7 +100,7 @@ int main(int argc, char **argv)
     }
 
     oc::CLP cmd(argc, argv);
-    const auto config = FpsiConfig::fromCommandLine(cmd);
+    auto config = FpsiConfig::fromCommandLine(cmd);
 
     // Protocol parameters:
     //   p          : 0 = L_infinity, non-zero = L_p
@@ -113,11 +117,39 @@ int main(int argc, char **argv)
         return 2;
     }
 
-    if (sender) {
-        runOneSidedSender(config, assumption, prefix);
-    } else {
-        runOneSidedReceiver(config, assumption, prefix);
+    std::optional<FpsiFileInput> fileInput;
+    std::filesystem::path inputDirectory;
+    PointSet output;
+    if (cmd.isSet("i")) {
+        const auto &paths = cmd.mKeyValues.at("i");
+        if (paths.size() != 1 || paths.front().empty()) {
+            throw std::invalid_argument("-i requires exactly one input directory");
+        }
+        if (sender && prefix && config.metric != 0) {
+            throw std::invalid_argument("sender-sided prefix currently supports only L-infinity");
+        }
+        inputDirectory = paths.front();
+        fileInput = loadFpsiInput(inputDirectory, config, assumption, sender);
+        output = PointSet(0, config.dimension);
+        config.input = &fileInput->testCase;
+        config.output = &output;
+    }
+
+    if (config.input == nullptr || config.n != 0) {
+        if (sender) {
+            runOneSidedSender(config, assumption, prefix);
+        } else {
+            runOneSidedReceiver(config, assumption, prefix);
+        }
+    }
+    if (fileInput) {
+        writeFpsiOutput(inputDirectory, output, fileInput->coordinateOffsets);
+        std::cout << "Intersection written to "
+                  << (inputDirectory / "output.txt").string() << '\n';
     }
 
     return 0;
+} catch (const std::exception &error) {
+    std::cerr << "error: " << error.what() << '\n';
+    return 2;
 }
