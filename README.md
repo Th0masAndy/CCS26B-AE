@@ -67,7 +67,7 @@ The build and smoke test need at least 16 GiB RAM. The full unique-cell evaluati
 peaks at 62.8 GiB, while unique-block normal mode peaks at 198.5 GiB at $n=2^{12}$.
 Use a dedicated 256 GiB host for the complete evaluation.
 
-### Docker build (Recommend!)
+### 🐳 Docker build (Recommended)
 
 Docker is the recommended way to build and run the artifact in a consistent environment:
 
@@ -116,42 +116,7 @@ If a build was interrupted, do not pre-create `code/thirdparty/` contents manual
 The build script is resumable and reports the exact incomplete directory when
 manual cleanup is necessary.
 
-## Repository structure
-
-```text
-code/                 self-contained implementation root        
-├── CMakeLists.txt    build and CTest configuration
-├── Dockerfile        recommended deployment environment
-├── README.md         implementation guide
-├── fpsi/             source code grouped by module
-├── build/            generated executable and CMake files
-└── thirdparty/       generated pinned dependencies
-scripts/
-├── build/            environment checks and dependency builds
-├── reproduction/     smoke tests, benchmarks, and result analysis
-└── data/             boundary-case generation and validation
-claims/               paper claims, experiment commands, and pass criteria
-README.md             reviewer entry point
-LICENSE               MIT license
-CITATION.cff          machine-readable citation metadata
-```
-
-Reviewers only need this file. Researchers who want to reuse or modify the
-implementation can continue with [code/README.md](./code/README.md).
-
-| Task | Script |
-|---|---|
-| Environment preflight | `scripts/build/preflight.sh` |
-| Build | `scripts/build/run.sh` |
-| Reproduction profiles | `scripts/reproduction/run.sh` |
-| Correctness smoke test | `scripts/reproduction/smoke.sh` |
-| Benchmark matrices | `scripts/reproduction/benchmark.sh {unique-cell|unique-block}` |
-| Result summarization | `scripts/reproduction/summarize_results.py` |
-| Paper comparison | `scripts/reproduction/compare_paper_results.py` |
-| Boundary data | `scripts/data/generate_boundary_data.py` |
-| Claim-by-claim evaluation | `claims/README.md` |
-
-## Command-line Flags
+## ⚙️ Command-line Flags
 
 Run `./code/build/fpsi -h` for built-in help.
 
@@ -212,7 +177,7 @@ revision. Third-party code remains subject to its own license.
 
 </details>
 
-## Full reproduction
+## 📊 Full reproduction
 
 Run 180 benchmark cases:
 
