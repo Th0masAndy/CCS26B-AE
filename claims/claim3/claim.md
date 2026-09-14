@@ -16,7 +16,7 @@ The experiment evaluates normal and prefix modes over:
 
 This gives 45 parameter tuples in each mode and 90 program executions in total.
 Each execution runs `TRIALS` internal trials and reports their average. Every
-trial enables correctness checking with four planted matches.
+trial enables correctness checking with 16 planted matches (`-inter 16`).
 
 ## Experiment command
 
@@ -57,11 +57,14 @@ $d=6,\delta=512$ cases is:
 
 | Mode / metric | Peak RSS | Status |
 |---|---:|---|
-| Normal, $L_\infty$ | 198.5 GiB | measured, 4/4 correct |
+| Normal, $L_\infty$ | 198.5 GiB | measured, verified |
 | Normal, $L_1/L_2$ | approximately 198.5 GiB | same bounded pre-metric OPPRF path; later arrays are small |
-| Prefix, $L_\infty$ | 5.42 GiB | measured, 4/4 correct |
-| Prefix, $L_1$ | 9.84 GiB | measured, 4/4 correct |
-| Prefix, $L_2$ | 9.85 GiB | measured, 4/4 correct |
+| Prefix, $L_\infty$ | 5.42 GiB | measured, verified |
+| Prefix, $L_1$ | 9.84 GiB | measured, verified |
+| Prefix, $L_2$ | 9.85 GiB | measured, verified |
+
+These resource measurements used the earlier `-inter 4` setting; current runs
+use `-inter 16`.
 
 The normal protocols construct 1,612,185,600 key/value pairs at this largest
 point before the metric-specific branch. The local PRF is evaluated in bounded

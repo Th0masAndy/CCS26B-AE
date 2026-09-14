@@ -6,7 +6,6 @@ A successful run creates:
 artifact-results/claim1/
 ├── environment.txt
 ├── quick.txt
-├── summary.csv
 ├── summary.md
 ├── boundary.txt
 └── boundary/
@@ -27,7 +26,8 @@ With the default `TRIALS=1`, the terminal must end with:
 ```
 
 The smoke log must contain its six successful planted-match cases and the prefix
-parameter guard. Each protocol case contains `Total 4/4 matches found!` exactly
+parameter guard. The smoke cases use `nn=8` and explicitly plant 16 matches (`-inter 16`).
+Each protocol case contains `Total 16/16 matches found!` exactly
 `TRIALS` times.
 
 The boundary summary must contain `240 * TRIALS` rows, all marked `PASS`.

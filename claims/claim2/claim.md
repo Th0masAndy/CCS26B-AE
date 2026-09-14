@@ -16,7 +16,7 @@ The experiment evaluates both normal and prefix modes over:
 
 This gives 45 parameter tuples in each mode and 90 program executions in total.
 Each execution runs `TRIALS` internal trials and reports their average. Every
-trial enables correctness checking with four planted matches.
+trial enables correctness checking with 16 planted matches (`-inter 16`).
 
 ## Experiment command
 
@@ -70,12 +70,13 @@ parties. The following values are intended for machine planning:
 
 | Profile / largest case | Peak RSS | Status | Recommended RAM |
 |---|---:|---|---:|
-| Full, normal, $n=2^{16},d=6,\delta=512$ | 62.8 GiB | measured, 4/4 correct | 80 GiB |
+| Full, normal, $n=2^{16},d=6,\delta=512$ | 62.8 GiB | measured, verified | 80 GiB |
 | Full, prefix, $n=2^{16},d=6,\delta=512$ | 56.8 GiB | measured | 80 GiB |
 | Light, normal, $n=2^{12},d=6,\delta=512$ | 8.45 GiB | measured | 16 GiB |
 | Light, prefix, $n=2^{12},d=6,\delta=512$ | 3.75 GiB | measured | 16 GiB |
 
-The normal measurements completed with all four planted matches. Its OPPRF
+These resource measurements used the earlier `-inter 4` setting; current runs
+use `-inter 16`. The normal OPPRF
 masking phase evaluates the local PRF in bounded batches; this changes only the
 temporary working set, not the encoded key/value set or communication. The full
 prefix peak was captured after OPPRF; an earlier complete run measured

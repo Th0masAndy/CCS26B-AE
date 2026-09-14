@@ -44,13 +44,13 @@ suite. Results are saved to `artifact-results/claim1/`; override the location wi
 To generate reusable point files and expected answers without running FPSI:
 
 ```bash
-python3 scripts/generate_boundary_data.py --output-dir /tmp/fpsi-matching-data
+python3 scripts/data/generate_boundary_data.py --output-dir /tmp/fpsi-matching-data
 ```
 
 To check those files:
 
 ```bash
-python3 scripts/test_boundary_inputs.py --data-dir /tmp/fpsi-matching-data \
+python3 scripts/data/check_boundary_inputs.py --data-dir /tmp/fpsi-matching-data \
     --output-dir artifact-results/matching-check
 ```
 

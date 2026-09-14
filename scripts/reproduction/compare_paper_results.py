@@ -12,7 +12,7 @@ from pathlib import Path
 import sys
 import xml.etree.ElementTree as ET
 
-from summarize_results import KEY_FIELDS
+from summarize_results import KEY_FIELDS, parse_lines, positive_trials
 
 
 PLOT_FIELDS = ("assumption", "side", "metric", "size")
@@ -20,7 +20,7 @@ SVG_NAMESPACE = "http://www.w3.org/2000/svg"
 ET.register_namespace("", SVG_NAMESPACE)
 
 
-def load_results(path, paper=False, size=None):
+def load_results(path, paper=False, size=None, trials=1):
     time_field = "runtime_s" if paper else "runtime_s_mean"
     comm_field = "communication_mb" if paper else "communication_mb_mean"
     required = set(KEY_FIELDS) | {time_field, comm_field}
@@ -28,10 +28,19 @@ def load_results(path, paper=False, size=None):
         required.add("trials")
     rows = {}
     with path.open(newline="", encoding="utf-8") as handle:
-        reader = csv.DictReader(handle)
-        if not required.issubset(reader.fieldnames or []):
-            raise ValueError(f"{path}: missing required CSV columns")
-        for line_number, source in enumerate(reader, 2):
+        if paper or path.suffix.lower() == ".csv":
+            reader = csv.DictReader(handle)
+            if not required.issubset(reader.fieldnames or []):
+                raise ValueError(f"{path}: missing required CSV columns")
+            sources = enumerate(reader, 2)
+        else:
+            time_field, comm_field = "runtime", "communication"
+            sources = (
+                (line_number, {**row, "trials": trials})
+                for line_number, line in enumerate(handle, 1)
+                for row in parse_lines([line])
+            )
+        for line_number, source in sources:
             try:
                 row = {field: source[field] for field in KEY_FIELDS}
                 for field in ("metric", "dimension", "delta", "size"):
@@ -192,13 +201,6 @@ def write_figure(path, rows):
     return title
 
 
-def write_csv(path, rows):
-    with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
-        writer.writeheader()
-        writer.writerows(rows)
-
-
 def write_markdown(path, rows, figures, reference_path, measured_path):
     lines = ["# Paper runtime plots", "",
              f"Paper reference: {reference_path}",
@@ -211,11 +213,26 @@ def write_markdown(path, rows, figures, reference_path, measured_path):
     for figure in figures:
         lines.extend([f"## {figure['title']}", "",
                       f"![{figure['title']}]({figure['path']})", ""])
-    path.write_text("\n".join(lines), encoding="utf-8")
+    lines.extend([
+        "## Matched measurements", "",
+        "| Mode | Assumption | Side | Metric | d | Delta | n | Trials | "
+        "Paper time (s) | Measured time (s) | Paper comm. (MB) | Measured comm. (MB) |",
+        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+    ])
+    for row in rows:
+        lines.append(
+            f"| {row['mode']} | {row['assumption']} | {row['side']} | "
+            f"L{row['metric']} | {row['dimension']} | {row['delta']} | "
+            f"{row['size']} | {row['trials']} | "
+            f"{row['paper_runtime_s']} | {row['measured_runtime_s']} | "
+            f"{row['paper_communication_mb']} | {row['measured_communication_mb']} |"
+        )
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def compare(reference_path, measured_path, output_dir, size=None):
-    rows = match_results(load_results(reference_path, paper=True, size=size), load_results(measured_path))
+def compare(reference_path, measured_path, output_dir, size=None, trials=1):
+    rows = match_results(load_results(reference_path, paper=True, size=size),
+                         load_results(measured_path, trials=trials))
     output_dir.mkdir(parents=True, exist_ok=True)
     plot_dir = output_dir / "paper-plots"
     plot_dir.mkdir(exist_ok=True)
@@ -227,14 +244,15 @@ def compare(reference_path, measured_path, output_dir, size=None):
         filename = f"runtime-{index}-L{key[2]}-n{key[3]}.svg"
         title = write_figure(plot_dir / filename, group)
         figures.append({"title": title, "path": f"paper-plots/{filename}"})
-    write_csv(output_dir / "paper-comparison.csv", rows)
     write_markdown(output_dir / "paper-comparison.md", rows, figures, reference_path, measured_path)
     current_files = {Path(figure["path"]).name for figure in figures}
     for previous in plot_dir.glob("runtime-*-L*-n*.svg"):
         if previous.name not in current_files:
             previous.unlink()
-    for filename in ("paper-statistics.csv", "paper-speedups.csv"):
-        (output_dir / filename).unlink(missing_ok=True)
+    for filename in ("paper-comparison.csv", "paper-statistics.csv", "paper-speedups.csv"):
+        previous = output_dir / filename
+        if previous.resolve() not in {reference_path.resolve(), measured_path.resolve()}:
+            previous.unlink(missing_ok=True)
     print(f"📈 Runtime plots: {output_dir / 'paper-comparison.md'} ({len(figures)} figures)")
     return rows, figures
 
@@ -242,12 +260,15 @@ def compare(reference_path, measured_path, output_dir, size=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--reference", type=Path, required=True)
-    parser.add_argument("--results", type=Path, required=True, help="summary.csv from summarize_results.py")
+    parser.add_argument("--results", type=Path, required=True, help="raw FPSI log (or a legacy summary CSV)")
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--size", type=int, help="select this set size from the paper (e.g. 4096 for Claim 2 --light)")
+    parser.add_argument("--trials", type=positive_trials, default=1,
+                        help="internal trials per raw result row (default: 1; ignored for CSV input)")
     arguments = parser.parse_args()
     try:
-        compare(arguments.reference, arguments.results, arguments.output_dir, arguments.size)
+        compare(arguments.reference, arguments.results, arguments.output_dir,
+                arguments.size, arguments.trials)
     except (OSError, ValueError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1

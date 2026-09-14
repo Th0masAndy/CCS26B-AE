@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/toolchain.sh"
+
 BUILD_MODE=0
 [[ ${1:-} == --build ]] && BUILD_MODE=1
 
@@ -64,24 +66,26 @@ for tool in cmake git python3; do
     if command -v "$tool" >/dev/null 2>&1; then
         pass "$tool is available"
     elif ((BUILD_MODE)); then
-        warn "$tool is not installed yet; scripts/build.sh will install system packages"
+        warn "$tool is not installed yet; scripts/build/run.sh will install system packages"
     else
         warn "$tool is unavailable"
     fi
 done
 
-if command -v g++ >/dev/null 2>&1; then
-    compiler_major=$(g++ -dumpfullversion -dumpversion | cut -d. -f1)
-    if ((compiler_major >= 13)); then
-        pass "GCC $(g++ -dumpfullversion -dumpversion) supports the reference toolchain"
+for compiler in "$FPSI_CC" "$FPSI_CXX"; do
+    if command -v "$compiler" >/dev/null 2>&1; then
+        if version=$(compiler_version "$compiler"); then
+            pass "$compiler $version meets the GCC 11+ requirement"
+        else
+            fail "Unsupported compiler: $compiler"
+        fi
+    elif ((BUILD_MODE)) && [[ ${FPSI_SKIP_SYSTEM_PACKAGES:-0} != 1 ]] \
+        && [[ $compiler == gcc || $compiler == g++ ]]; then
+        warn "$compiler is not installed yet; scripts/build/run.sh will install it"
     else
-        fail "GCC 13+ is required (found $(g++ -dumpfullversion -dumpversion))"
+        fail "$compiler is unavailable; install build-essential or the selected GCC/G++ 11+ pair"
     fi
-elif ((BUILD_MODE)); then
-    warn "g++ is not installed yet; scripts/build.sh will install the reference compiler"
-else
-    fail "g++ is unavailable"
-fi
+done
 
 if ((failures)); then
     echo

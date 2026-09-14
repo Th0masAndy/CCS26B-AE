@@ -3,8 +3,8 @@
 This directory is the self-contained implementation root. It contains the source
 code, build definition, downloaded dependencies, and generated build output.
 `CMakeLists.txt` builds the executable as `code/build/fpsi`. `Dockerfile` and
-`Dockerfile.dockerignore` define the optional container build from the repository
-root context.
+`Dockerfile.dockerignore` define the recommended container build from the
+repository root context.
 
 ## Directory layout
 
@@ -20,7 +20,7 @@ fpsi/
 Each module keeps its declarations and implementations together. For example,
 `fpsi/primitive/eq.h` and `fpsi/primitive/eq.cpp` live in the same directory.
 
-Automated checks live in `../scripts/` and are registered with CTest in
+Reviewer-facing correctness checks are registered with CTest in
 `CMakeLists.txt`.
 
 ## Public entry points

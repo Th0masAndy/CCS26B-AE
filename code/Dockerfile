@@ -29,8 +29,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY . /home/FPSI
 
 RUN cd /home/FPSI && \
-    chmod +x scripts/*.sh scripts/*.py && \
-    FPSI_SKIP_SYSTEM_PACKAGES=1 ./scripts/build.sh
+    chmod +x scripts/build/*.sh scripts/reproduction/*.sh \
+        scripts/reproduction/*.py scripts/data/*.py && \
+    FPSI_SKIP_SYSTEM_PACKAGES=1 ./scripts/build/run.sh
 
 WORKDIR /home/FPSI
 

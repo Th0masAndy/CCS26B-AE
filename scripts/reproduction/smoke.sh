@@ -2,9 +2,10 @@
 
 set -euo pipefail
 
-ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 BINARY=${1:-${FPSI_BIN:-"$ROOT_DIR/code/build/fpsi"}}
-EXPECTED="Total 4/4 matches found!"
+NN=8
+EXPECTED="Total 16/16 matches found!"
 PASSED=0
 TRIALS=${TRIALS:-1}
 
@@ -15,7 +16,7 @@ fi
 
 if [[ ! -x "$BINARY" ]]; then
     echo "❌ Executable not found: $BINARY" >&2
-    echo "   Run ./scripts/build.sh first, or pass the executable as argument 1." >&2
+    echo "   Run ./scripts/build/run.sh first, or pass the executable as argument 1." >&2
     exit 2
 fi
 
@@ -27,7 +28,7 @@ run_case()
     echo
     echo "▶ $label"
     local output
-    if ! output=$("$BINARY" "$@" -nn 8 -d 2 -delta 32 -inter 4 -try "$TRIALS" -v 1 2>&1); then
+    if ! output=$("$BINARY" "$@" -nn "$NN" -d 2 -delta 32 -inter 16 -try "$TRIALS" -v 1 2>&1); then
         printf '%s\n' "$output"
         echo "❌ Protocol exited with an error" >&2
         exit 1
@@ -52,7 +53,7 @@ run_case "uniqueCell sender, prefix, L0" -assumption 0 -sender -prefix -p 0
 run_case "uniqueBlock receiver, normal, L2" -assumption 1 -p 2
 run_case "uniqueBlock receiver, prefix, L1" -assumption 1 -prefix -p 1
 
-if "$BINARY" -assumption 0 -prefix -p 0 -nn 8 -d 2 -delta 30 -inter 4 -try 1 >/dev/null 2>&1; then
+if "$BINARY" -assumption 0 -prefix -p 0 -nn "$NN" -d 2 -delta 30 -inter 16 -try 1 >/dev/null 2>&1; then
     echo "❌ Non-power-of-two prefix delta was accepted" >&2
     exit 1
 fi

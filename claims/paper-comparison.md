@@ -13,8 +13,7 @@ After Claim 2 or Claim 3 completes, the wrapper writes:
 | Output | Contents |
 |---|---|
 | `paper-plots/*.svg` | Paper and measured runtime curves |
-| `paper-comparison.md` | Figure gallery |
-| `paper-comparison.csv` | Matched original time and communication values |
+| `paper-comparison.md` | Figures and a table of matched time and communication values |
 
 Each figure fixes the set size and metric. Rows correspond to dimensions;
 columns separate Ours and Ours-Px. Claim 2 produces three figures for the full
@@ -33,7 +32,7 @@ Figures are generated only as SVG, viewable in a browser or Markdown preview.
 Plotting uses the Python standard library and the project's `summarize_results`
 module, which also depends only on the standard library. No third-party packages
 or PNG conversion are required. No coefficients, speedup rankings, or automatic
-trend pass/fail judgments are produced. Previous generated statistics/speedup reports
+trend pass/fail judgments are produced. Previous generated comparison CSV and statistics/speedup reports
 are removed when the same output directory is reused.
 
 Configurations are matched exactly by mode, assumption, side, metric, dimension,
@@ -62,11 +61,14 @@ before using them for this comparison; replotting cannot correct their timings.
 No protocol rerun is required:
 
 ```bash
-python3 scripts/compare_paper_results.py \
+python3 scripts/reproduction/compare_paper_results.py \
     --reference claims/claim2/paper-results.csv \
-    --results artifact-results/claim2-light/summary.csv \
+    --results artifact-results/claim2-light/unique-cell.txt \
     --size 4096 --output-dir artifact-results/claim2-light
 ```
 
 For the complete Table 2 matrix, omit `--size`. For Table 3, use
-`claims/claim3/paper-results.csv` and the Claim 3 summary.
+`claims/claim3/paper-results.csv` and the Claim 3 `unique-block.txt` log.
+Add `--trials N` if the log was produced with `TRIALS=N` (default: 1).
+Plots read the original log values, not the rounded Markdown table.
+Legacy summary CSV files remain supported as inputs; no paired CSV reports are generated.

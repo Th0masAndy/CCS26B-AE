@@ -106,7 +106,7 @@ def positive_integer(value):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", type=Path, default=ROOT_DIR / "code/build/fpsi")
-    parser.add_argument("--data-dir", type=Path, help="use files from generate_boundary_data.py")
+    parser.add_argument("--data-dir", type=Path, help="use files from scripts/data/generate_boundary_data.py")
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--trials", type=positive_integer, default=1)
     parser.add_argument("--timeout", type=positive_integer, default=60, help="seconds per execution")

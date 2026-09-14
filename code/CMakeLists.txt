@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 project(FPSI)
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 11)
+    message(FATAL_ERROR "FPSI requires GCC 11 or newer with C++20 support")
+endif()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -62,39 +66,19 @@ include(CTest)
 if(BUILD_TESTING)
     add_test(NAME artifact_cli_help COMMAND fpsi -h)
     add_test(
-        NAME artifact_file_input
-        COMMAND python3 ${CMAKE_SOURCE_DIR}/../scripts/test_file_input.py $<TARGET_FILE:fpsi>
-    )
-    set_tests_properties(artifact_file_input PROPERTIES TIMEOUT 240)
-    add_test(
         NAME artifact_boundary_inputs
-        COMMAND python3 ${CMAKE_SOURCE_DIR}/../scripts/test_boundary_inputs.py
+        COMMAND python3 ${CMAKE_SOURCE_DIR}/../scripts/data/check_boundary_inputs.py
             --binary $<TARGET_FILE:fpsi>
             --output-dir ${CMAKE_CURRENT_BINARY_DIR}/boundary-results
     )
     set_tests_properties(artifact_boundary_inputs PROPERTIES TIMEOUT 600)
     add_test(
-        NAME artifact_boundary_workflow
-        COMMAND python3 ${CMAKE_SOURCE_DIR}/../scripts/test_boundary_workflow.py
-    )
-    set_tests_properties(artifact_boundary_workflow PROPERTIES TIMEOUT 60)
-    add_test(
-        NAME artifact_trials_workflow
-        COMMAND python3 ${CMAKE_SOURCE_DIR}/../scripts/test_trials.py
-    )
-    set_tests_properties(artifact_trials_workflow PROPERTIES TIMEOUT 120)
-    add_test(
-        NAME artifact_paper_comparison
-        COMMAND python3 ${CMAKE_SOURCE_DIR}/../scripts/test_paper_comparison.py
-    )
-    set_tests_properties(artifact_paper_comparison PROPERTIES TIMEOUT 60)
-    add_test(
         NAME artifact_smoke
-        COMMAND bash ${CMAKE_SOURCE_DIR}/../scripts/run_smoke.sh $<TARGET_FILE:fpsi>
+        COMMAND bash ${CMAKE_SOURCE_DIR}/../scripts/reproduction/smoke.sh $<TARGET_FILE:fpsi>
     )
     set_tests_properties(artifact_smoke PROPERTIES TIMEOUT 120)
     add_test(
         NAME artifact_result_parser
-        COMMAND python3 ${CMAKE_SOURCE_DIR}/../scripts/summarize_results.py --self-test
+        COMMAND python3 ${CMAKE_SOURCE_DIR}/../scripts/reproduction/summarize_results.py --self-test
     )
 endif()

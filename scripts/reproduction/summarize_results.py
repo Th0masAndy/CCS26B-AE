@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 
-"""Convert FPSI text result rows into reproducible CSV/Markdown summaries."""
+"""Convert FPSI text result rows into reproducible Markdown summaries."""
 
 from __future__ import annotations
 
 import argparse
-import csv
 import math
 import re
 import statistics
@@ -63,22 +62,6 @@ def summarize(rows: list[dict[str, object]], trials: int = 1) -> list[dict[str, 
     return summaries
 
 
-OUTPUT_FIELDS = KEY_FIELDS + (
-    "trials",
-    "communication_mb_mean",
-    "runtime_s_mean",
-)
-
-
-def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=OUTPUT_FIELDS)
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(row)
-
-
 def write_markdown(path: Path, rows: list[dict[str, object]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as handle:
@@ -128,7 +111,6 @@ def positive_trials(value: str) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("logs", nargs="*", type=Path, help="raw FPSI log files")
-    parser.add_argument("--csv", type=Path, help="CSV output path")
     parser.add_argument("--markdown", type=Path, help="Markdown output path")
     parser.add_argument(
         "--trials", type=positive_trials, default=1,
@@ -140,8 +122,8 @@ def main() -> int:
     if args.self_test:
         self_test()
         return 0
-    if not args.logs or not args.csv or not args.markdown:
-        parser.error("logs, --csv, and --markdown are required")
+    if not args.logs or not args.markdown:
+        parser.error("logs and --markdown are required")
 
     lines: list[str] = []
     for path in args.logs:
@@ -151,8 +133,12 @@ def main() -> int:
         print("error: no FPSI result rows found", file=sys.stderr)
         return 1
 
-    write_csv(args.csv, rows)
     write_markdown(args.markdown, rows)
+    previous_csv = args.markdown.with_suffix(".csv")
+    if args.markdown.name == "summary.md" and previous_csv.resolve() not in {
+        path.resolve() for path in args.logs
+    }:
+        previous_csv.unlink(missing_ok=True)
     print(f"✓ Summarized {len(rows)} configuration(s)")
     return 0
 

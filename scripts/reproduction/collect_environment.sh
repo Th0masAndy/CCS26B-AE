@@ -2,7 +2,8 @@
 
 set -euo pipefail
 
-ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+source "$ROOT_DIR/scripts/build/toolchain.sh"
 
 echo "FPSI artifact evaluation environment"
 echo "recorded_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -35,6 +36,16 @@ df -h "$ROOT_DIR"
 echo
 
 echo "[Toolchain]"
-command -v g++ >/dev/null 2>&1 && g++ --version | sed -n '1p' || echo "g++ unavailable"
+for compiler_info in "$ROOT_DIR"/code/build/CMakeFiles/*/CMake{C,CXX}Compiler.cmake; do
+    [[ -f $compiler_info ]] || continue
+    awk -F'"' '/^set\(CMAKE_(C|CXX)_COMPILER(_ID|_VERSION)? / {
+        key=$1; sub(/^set\(/, "", key); sub(/ $/, "", key)
+        print "build_" key "=" $2
+    }' "$compiler_info"
+done
+for compiler in "$FPSI_CC" "$FPSI_CXX"; do
+    command -v "$compiler" >/dev/null 2>&1 \
+        && "$compiler" --version | sed -n '1p' || echo "$compiler unavailable"
+done
 command -v cmake >/dev/null 2>&1 && cmake --version | sed -n '1p' || echo "cmake unavailable"
 command -v python3 >/dev/null 2>&1 && python3 --version || echo "python3 unavailable"

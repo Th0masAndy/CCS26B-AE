@@ -6,9 +6,7 @@ A successful default run creates:
 artifact-results/claim3/
 ├── environment.txt
 ├── unique-block.txt
-├── summary.csv
 ├── summary.md
-├── paper-comparison.csv
 ├── paper-comparison.md
 └── paper-plots/
     └── runtime-*.svg
@@ -16,20 +14,20 @@ artifact-results/claim3/
 
 The raw log and summary must contain 90 distinct configurations: 45 normal and
 45 prefix rows, covering all three metrics, regardless of `TRIALS`. Each
-configuration must report `Total 4/4 matches found!` once per trial:
+configuration must report `Total 16/16 matches found!` once per trial:
 `90 * TRIALS` markers in total. The script must finish with:
 
 ```text
 ✅ Claim 3 complete
 ```
 
-`summary.csv` and `summary.md` report the trial count and mean communication
+`summary.md` reports the trial count and mean communication
 and runtime for every configuration. Communication should remain stable for
 the same revision and parameters. Absolute runtime is hardware-dependent;
 reproduce paper trends and compare modes and metrics on the same machine rather than requiring exact
 wall-clock equality.
 
-The paper-comparison CSV must contain 90 matched rows,
+The table in `paper-comparison.md` must contain 90 matched rows,
 with the original paper and measured values. `paper-comparison.md` embeds
 three SVG figures, plotting time in seconds against `delta`.
 Each dimension/mode panel contains the paper and measured curves with equally

@@ -7,7 +7,9 @@ families for $L_\infty$, $L_1$, and $L_2$ distances.
 
 ## 🖥️ Platform requirements
 
-- **Reference platform:** Ubuntu 24.04 on x86_64 with GCC 13.
+- **Reference platform:** Ubuntu 24.04 on x86_64.
+- **Compiler requirement:** GCC 11 or newer with C++20 support.
+- **Memory requirement:** 256 GiB for full reproduction, 64 GiB for partial reproduction, and 32 GiB for the mini benchmark.
 - **Required CPU instructions:** AES, PCLMUL, SSE2, and SSE4.1.
 - **Unsupported platforms:** ARM64 and Apple Silicon, including AMD64 emulation.
 
@@ -19,7 +21,7 @@ families for $L_\infty$, $L_1$, and $L_2$ distances.
    architecture, CPU instructions, compiler, memory, disk space, and basic tools.
 
    ```bash
-   ./scripts/preflight.sh
+   ./scripts/build/preflight.sh
    ```
 
 
@@ -31,7 +33,7 @@ families for $L_\infty$, $L_1$, and $L_2$ distances.
    already installed.
 
    ```bash
-   ./scripts/build.sh
+   ./scripts/build/run.sh
    ```
 
 3. **Run the quick validation**
@@ -39,7 +41,7 @@ families for $L_\infty$, $L_1$, and $L_2$ distances.
    Run a quick correctness check and save the results to `artifact-results/`.
 
    ```bash
-   ./scripts/run_reproduction.sh --quick
+   ./scripts/reproduction/run.sh --quick
    ```
 
 
@@ -51,14 +53,13 @@ Expected time on an 8-core machine:
 | Fresh build | 10–20 minutes | `✅ Build complete: .../code/build/fpsi` |
 | Quick reproduction | below 2 minutes | `✅ [smoke] PASS: 6 protocol cases and 1 parameter guard` |
 
-The quick workflow writes raw output, host information, CSV, and Markdown to
+The quick workflow writes raw output, host information, and a Markdown summary to
 `artifact-results/`:
 
 ```text
 artifact-results/
 ├── environment.txt
 ├── quick.txt
-├── summary.csv
 └── summary.md
 ```
 
@@ -66,19 +67,22 @@ The build and smoke test need at least 16 GiB RAM. The full unique-cell evaluati
 peaks at 62.8 GiB, while unique-block normal mode peaks at 198.5 GiB at $n=2^{12}$.
 Use a dedicated 256 GiB host for the complete evaluation.
 
-### Optional Docker path
+### Docker build (Recommend!)
 
-Docker is an alternative isolated build path, not a requirement:
+Docker is the recommended way to build and run the artifact in a consistent environment:
 
 ```bash
 docker build -f code/Dockerfile -t fpsi-ae .
-docker run --rm fpsi-ae ./scripts/run_reproduction.sh --quick
+docker run --rm fpsi-ae ./scripts/reproduction/run.sh --quick
 ```
 
-## File input
+## 🗂️ Input data
 
-Use `-i <directory>` to read `sender_data.txt` and `recver_data.txt` from that
-directory and write matching sender points to `output.txt` in the same directory:
+By default, the program uses randomly generated simulation data.
+
+To use file-based inputs, pass `-i <directory>`. The program reads
+`sender_data.txt` and `recver_data.txt` from that directory and writes matching
+sender points to `output.txt` in the same directory:
 
 ```bash
 ./code/build/fpsi -assumption 0 -p 2 -delta 32 -i ./my-data
@@ -97,16 +101,15 @@ within either file. The point count and dimension are inferred from the files.
 Inputs must satisfy the selected protocol's one-sided assumption (unique-cell
 or unique-block).
 
-Without the `-i` option, the program uses randomly generated simulation data.
-
-## Troubleshooting
+## 🛠️ Troubleshooting
 
 | Symptom | Resolution |
 |---|---|
-| `Illegal instruction` | Run `scripts/preflight.sh`; the host is usually ARM64 or is missing a required x86 instruction. |
-| Compiler process is killed | Lower parallelism, for example `JOBS=4 ./scripts/build.sh`, and check available memory. |
-| `GCC 13+ is required` | Use Ubuntu 24.04/GCC 13 or the Docker path. |
-| Incomplete dependency directory | Remove only the dependency directory named by `scripts/build.sh`, then rerun it. |
+| `Illegal instruction` | Run `scripts/build/preflight.sh`; the host is usually ARM64 or is missing a required x86 instruction. |
+| Compiler process is killed | Lower parallelism, for example `JOBS=4 ./scripts/build/run.sh`, and check available memory. |
+| Compiler is missing or older than GCC 11 | Install `build-essential`, or select a matching pair with `CC` and `CXX`. |
+| `Compiler mismatch` | Move `code/build` and `code/thirdparty` aside, then rebuild; do not reuse libraries built with another toolchain. |
+| Incomplete dependency directory | Remove only the dependency directory named by `scripts/build/run.sh`, then rerun it. |
 | Runtime differs from the paper | Record `environment.txt`, repeat the case, and compare trends and communication rather than exact wall-clock values. |
 
 If a build was interrupted, do not pre-create `code/thirdparty/` contents manually.
@@ -118,12 +121,15 @@ manual cleanup is necessary.
 ```text
 code/                 self-contained implementation root        
 ├── CMakeLists.txt    build and CTest configuration
-├── Dockerfile        optional reference environment
+├── Dockerfile        recommended deployment environment
 ├── README.md         implementation guide
 ├── fpsi/             source code grouped by module
 ├── build/            generated executable and CMake files
 └── thirdparty/       generated pinned dependencies
-scripts/              build, test, benchmark, analysis, and release tools
+scripts/
+├── build/            environment checks and dependency builds
+├── reproduction/     smoke tests, benchmarks, and result analysis
+└── data/             boundary-case generation and validation
 claims/               paper claims, experiment commands, and pass criteria
 README.md             reviewer entry point
 LICENSE               MIT license
@@ -135,16 +141,15 @@ implementation can continue with [code/README.md](./code/README.md).
 
 | Task | Script |
 |---|---|
-| Build | `scripts/build.sh` |
-| Correctness smoke test | `scripts/run_smoke.sh` |
-| Quick/full reproduction | `scripts/run_reproduction.sh` |
-| Unique-cell matrix | `scripts/bench_unique_cell.sh` |
-| Unique-block matrix | `scripts/bench_unique_block.sh` |
-| Result summarization | `scripts/summarize_results.py` |
-| Single-case resource measurement | `scripts/measure_case.sh` |
-| Source release archive | `scripts/package_release.sh` |
+| Environment preflight | `scripts/build/preflight.sh` |
+| Build | `scripts/build/run.sh` |
+| Reproduction profiles | `scripts/reproduction/run.sh` |
+| Correctness smoke test | `scripts/reproduction/smoke.sh` |
+| Benchmark matrices | `scripts/reproduction/benchmark.sh {unique-cell|unique-block}` |
+| Result summarization | `scripts/reproduction/summarize_results.py` |
+| Paper comparison | `scripts/reproduction/compare_paper_results.py` |
+| Boundary data | `scripts/data/generate_boundary_data.py` |
 | Claim-by-claim evaluation | `claims/README.md` |
-| Optional network emulation | `scripts/throttle.sh` |
 
 ## Command-line Flags
 
@@ -190,7 +195,7 @@ Examples:
 | [libOTe](https://github.com/osu-crypto/libOTe) | `d21bc4d7aae941e276b92615252fd1760c902890` | OT and circuit primitives |
 | [BLAKE3](https://github.com/BLAKE3-team/BLAKE3) | `c7f0d216e6fc834b742456b39546c9835baa1277` | hashing |
 
-`scripts/build.sh` pins both secure-join and volePSI to the same libOTe
+`scripts/build/run.sh` pins both secure-join and volePSI to the same libOTe
 revision. Third-party code remains subject to its own license.
 
 </details>
@@ -209,33 +214,58 @@ revision. Third-party code remains subject to its own license.
 
 ## Full reproduction
 
-Run the complete parameter matrices (180 performance configurations plus smoke
-checks):
+Run 180 benchmark cases:
+
+- **Unique cell (90 cases):** normal and prefix modes, $L_\infty$,
+  $n\in\{2^8,2^{12},2^{16}\}$, $d\in\{2,4,6\}$, and
+  $\delta\in\{32,64,128,256,512\}$.
+- **Unique block (90 cases):** normal and prefix modes, $L_\infty$, $L_1$, and
+  $L_2$, $n=2^{12}$, $d\in\{2,4,6\}$, and
+  $\delta\in\{32,64,128,256,512\}$.
 
 ```bash
-./scripts/run_reproduction.sh --full
+./scripts/reproduction/run.sh --full
 ```
 
 **Estimated runtime: 5–6 hours. Peak memory: approximately 200 GiB RSS.**
 A host with **256 GiB RAM** is recommended.
 
-### Reduced $n=2^{12}$ reproduction (optional)
+### Partial reproduction (optional)
 
-Run both tables at $n=2^{12}$ (120 performance configurations plus smoke checks):
+Reproduce a subset of Tables 2 and 3 at their original set size:
+$n=2^{12}$ and $d=2,4$. Keep all five thresholds, both normal and prefix
+modes, and the metrics used in each table (80 benchmark cases).
 
 ```bash
-./scripts/run_reproduction.sh --light
+./scripts/reproduction/run.sh --partial
 ```
 
-**Estimated runtime: 2–3 hours. Peak memory: approximately 200 GiB RSS.**
-A host with **256 GiB RAM** is still recommended: this mode reduces the
-unique-cell workload, but leaves unique-block unchanged, so the overall memory
-peak does not decrease.
+**Estimated runtime: 25–35 minutes. Peak memory: approximately 35 GiB RSS.**
+A host with **64 GiB RAM** is recommended.
+Results are saved to `artifact-results/partial/`.
 
-Both time budgets are estimates based on measured per-configuration runtimes
-on our AMD EPYC 9554 host, assuming `TRIALS=1` and excluding build time.
-Peak memory is based on prior measurements. Slower hosts or additional trials
-need more time.
+### Mini benchmark (optional)
+
+Run the same 80-case subset with $n=2^{10}$ instead. This is a smaller
+performance benchmark, **not a reproduction of
+the paper's set sizes**; its results should not be compared directly with
+the paper's reported times.
+
+```bash
+./scripts/reproduction/run.sh --mini
+```
+
+**Estimated runtime: 6–10 minutes. Peak memory: approximately 21 GiB RSS.**
+A host with **32 GiB RAM** is recommended.
+Results are saved to `artifact-results/mini/`.
+
+All modes save raw logs, environment information, and Markdown summaries.
+Time budgets are estimates for the AMD EPYC 9554 reference host with
+`TRIALS=1`, excluding build time. Partial memory is based on a measured
+$n=2^{12},d=4,\delta=512$ unique-block normal case (33.5 GiB); mini memory
+is the maximum of the corresponding 80 cases in the earlier $n=2^{10}$
+resource sweep (20.4 GiB). Slower hosts or additional trials need more time;
+leave memory headroom for the OS and allocator variation.
 
 ## Claims
 
@@ -251,18 +281,6 @@ need more time.
    parameter settings (Table 3). 
 
 For a claim-by-claim evaluation roadmap, use [claims/README.md](./claims/README.md).
-
-## Limitations and safety
-
-- This is a research prototype, not production software or a security audit.
-- Inputs are generated in memory by default; `-i` accepts equal-sized point files.
-- Both parties run as threads in one process over local sockets.
-- Network emulation is never enabled automatically. `scripts/throttle.sh`
-  changes a host qdisc, requires `sudo`, and must be cleaned up with
-  `./scripts/throttle.sh del [interface]`.
-- Create public source archives with `./scripts/package_release.sh <version>`;
-  its allowlist excludes builds, dependencies, results, downloaded projects,
-  and private review correspondence.
 
 ## Acknowledgements
 

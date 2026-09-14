@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <coproto/Common/macoro.h>
 #include <coproto/Socket/AsioSocket.h>
-#include <format>
+#include <fmt/format.h>
 #include <iostream>
 #include <libOTe/TwoChooseOne/Silent/SilentOtExtReceiver.h>
 #include <libOTe/TwoChooseOne/Silent/SilentOtExtSender.h>
@@ -182,7 +182,7 @@ void correctCheck(const std::vector<u8> &choiceBit, const std::vector<u64> &inte
 
         auto sortedExpected = interIndices;
         std::sort(sortedExpected.begin(), sortedExpected.end());
-        throw runtime_error(std::format(
+        throw runtime_error(fmt::format(
             "fuzzyPsi result mismatch: expected [{}], actual [{}]", formatIndices(sortedExpected), formatIndices(actualIndices)));
     }
 
@@ -205,14 +205,14 @@ void printFpsiResult(
     double comm,
     double comp)
 {
-    const auto modeLabel = std::format("[{}]", mode);
-    const auto assumptionSide = std::format("{}-{}", assumption, side);
+    const auto modeLabel = fmt::format("[{}]", mode);
+    const auto assumptionSide = fmt::format("{}-{}", assumption, side);
 
-    std::cout << std::format(
+    std::cout << fmt::format(
                      "{:<10} {:<15} {:^7}  {:^4}  {:^5}  {:^6}  {:^9.2f} {:^9.2f}",
                      modeLabel,
                      assumptionSide,
-                     std::format("L{}", lp),
+                     fmt::format("L{}", lp),
                      d,
                      delta,
                      n,
