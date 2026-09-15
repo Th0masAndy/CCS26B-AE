@@ -17,7 +17,7 @@ import time
 from generate_boundary_data import METRICS, MODES, expected_intersection, generate
 
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 def read_points(path):

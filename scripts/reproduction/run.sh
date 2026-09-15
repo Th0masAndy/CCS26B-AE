@@ -9,8 +9,11 @@ export TRIALS
 
 usage()
 {
-    echo "usage: $0 [--quick|--partial|--mini|--full|--light]" >&2
-    echo "  --light retains the legacy all-n=2^12 matrix, including high-memory cases." >&2
+    echo "usage: $0 [--quick|--full|--partial|--mini]" >&2
+    echo "  --quick    Check the installation with smoke tests (default)." >&2
+    echo "  --full     Reproduce all 180 paper benchmark cases." >&2
+    echo "  --partial  Reproduce 80 paper cases at n=2^12, d=2,4." >&2
+    echo "  --mini     Run 80 small-input benchmark cases at n=2^10, d=2,4." >&2
 }
 
 if (( $# > 1 )); then
@@ -18,7 +21,7 @@ if (( $# > 1 )); then
     exit 2
 fi
 case "$MODE" in
-    --quick|--partial|--mini|--full|--light) ;;
+    --quick|--full|--partial|--mini) ;;
     *) usage; exit 2 ;;
 esac
 
@@ -73,13 +76,6 @@ case "$MODE" in
         FPSI_NS="12" FPSI_DIMS="2 4 6" "$ROOT_DIR/scripts/reproduction/benchmark.sh" unique-block | tee "$RESULT_DIR/unique-block.txt"
         summarize "$RESULT_DIR/unique-cell.txt" "$RESULT_DIR/unique-block.txt"
         echo "✅ Full reproduction complete: $RESULT_DIR"
-        ;;
-    --light)
-        rm -f "$RESULT_DIR/smoke.txt"
-        FPSI_NS="12" FPSI_DIMS="2 4 6" "$ROOT_DIR/scripts/reproduction/benchmark.sh" unique-cell | tee "$RESULT_DIR/unique-cell.txt"
-        FPSI_NS="12" FPSI_DIMS="2 4 6" "$ROOT_DIR/scripts/reproduction/benchmark.sh" unique-block | tee "$RESULT_DIR/unique-block.txt"
-        summarize "$RESULT_DIR/unique-cell.txt" "$RESULT_DIR/unique-block.txt"
-        echo "✅ Light reproduction complete: $RESULT_DIR"
         ;;
     --partial|--mini)
         nn=12

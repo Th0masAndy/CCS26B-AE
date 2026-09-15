@@ -15,7 +15,7 @@ import xml.etree.ElementTree as ET
 from summarize_results import KEY_FIELDS, parse_lines, positive_trials
 
 
-PLOT_FIELDS = ("assumption", "side", "metric", "size")
+PLOT_FIELDS = ("assumption", "side", "metric", "size", "dimension")
 SVG_NAMESPACE = "http://www.w3.org/2000/svg"
 ET.register_namespace("", SVG_NAMESPACE)
 
@@ -162,19 +162,20 @@ def draw_panel(root, rows, mode, dimension, left, top, width, height):
 
 def write_figure(path, rows):
     modes = [mode for mode in ("normal", "prefix") if any(row["mode"] == mode for row in rows)]
-    dimensions = sorted({row["dimension"] for row in rows})
     sample = rows[0]
+    dimension = sample["dimension"]
     assumption = {"uniqCel": "Unique cell", "uniqBlk": "Unique block"}.get(sample["assumption"], sample["assumption"])
     metric = {0: "L∞", 1: "L1", 2: "L2"}.get(sample["metric"], f"L{sample['metric']}")
-    title = f"{assumption} · {metric} · n = {sample['size']}"
-    width, gap, margin, header, panel_height = 1120, 24, 24, 104, 250
+    title = f"{assumption} · {metric} · n = {sample['size']} · d = {dimension}"
+    width, gap, margin, header, panel_height = 1120, 24, 24, 104, 340
     panel_width = (width - 2 * margin - gap * (len(modes) - 1)) / len(modes)
-    height = header + len(dimensions) * (panel_height + gap)
+    height = header + panel_height + gap
     root = ET.Element(f"{{{SVG_NAMESPACE}}}svg", {
         "width": str(width), "height": str(height), "viewBox": f"0 0 {width} {height}",
         "role": "img", "aria-labelledby": "figure-title",
         "data-assumption": str(sample["assumption"]), "data-side": str(sample["side"]),
         "data-metric": str(sample["metric"]), "data-size": str(sample["size"]),
+        "data-dimension": str(dimension),
     })
     element(root, "title", title, id="figure-title")
     element(root, "desc", "Paper and measured runtimes in seconds. Delta values are equally spaced categories; each panel has its own automatic linear time scale.")
@@ -188,14 +189,12 @@ def write_figure(path, rows):
         element(root, "line", x1=position, x2=position + 36, y1=83, y2=83,
                 stroke=color, stroke_width=2.4, stroke_dasharray=dash)
         element(root, "text", source, x=position + 46, y=87, font_size=13)
-    for row_index, dimension in enumerate(dimensions):
-        for column_index, mode in enumerate(modes):
-            selected = sorted((row for row in rows if row["mode"] == mode and row["dimension"] == dimension),
-                              key=lambda row: row["delta"])
-            if selected:
-                draw_panel(root, selected, mode, dimension,
-                           margin + column_index * (panel_width + gap),
-                           header + row_index * (panel_height + gap), panel_width, panel_height)
+    for column_index, mode in enumerate(modes):
+        selected = sorted((row for row in rows if row["mode"] == mode),
+                          key=lambda row: row["delta"])
+        draw_panel(root, selected, mode, dimension,
+                   margin + column_index * (panel_width + gap),
+                   header, panel_width, panel_height)
     ET.indent(root)
     ET.ElementTree(root).write(path, encoding="utf-8", xml_declaration=True)
     return title
@@ -241,7 +240,7 @@ def compare(reference_path, measured_path, output_dir, size=None, trials=1):
         groups[tuple(row[field] for field in PLOT_FIELDS)].append(row)
     figures = []
     for index, (key, group) in enumerate(sorted(groups.items()), 1):
-        filename = f"runtime-{index}-L{key[2]}-n{key[3]}.svg"
+        filename = f"runtime-{index}-L{key[2]}-n{key[3]}-d{key[4]}.svg"
         title = write_figure(plot_dir / filename, group)
         figures.append({"title": title, "path": f"paper-plots/{filename}"})
     write_markdown(output_dir / "paper-comparison.md", rows, figures, reference_path, measured_path)
@@ -262,7 +261,7 @@ def main():
     parser.add_argument("--reference", type=Path, required=True)
     parser.add_argument("--results", type=Path, required=True, help="raw FPSI log (or a legacy summary CSV)")
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--size", type=int, help="select this set size from the paper (e.g. 4096 for Claim 2 --light)")
+    parser.add_argument("--size", type=int, help="select this set size from the paper (e.g. 4096)")
     parser.add_argument("--trials", type=positive_trials, default=1,
                         help="internal trials per raw result row (default: 1; ignored for CSV input)")
     arguments = parser.parse_args()

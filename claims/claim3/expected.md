@@ -1,40 +1,23 @@
 # Expected result for Claim 3
 
-A successful default run creates:
+## Successful run
+
+The terminal ends with:
 
 ```text
-artifact-results/claim3/
-├── environment.txt
-├── unique-block.txt
-├── summary.md
-├── paper-comparison.md
-└── paper-plots/
-    └── runtime-*.svg
+✅ Claim 3 complete: 90 configuration(s)
 ```
 
-The raw log and summary must contain 90 distinct configurations: 45 normal and
-45 prefix rows, covering all three metrics, regardless of `TRIALS`. Each
-configuration must report `Total 16/16 matches found!` once per trial:
-`90 * TRIALS` markers in total. The script must finish with:
+All 90 parameter groups have completed and passed the automatic checks.
 
-```text
-✅ Claim 3 complete
-```
+## Result files
 
-`summary.md` reports the trial count and mean communication
-and runtime for every configuration. Communication should remain stable for
-the same revision and parameters. Absolute runtime is hardware-dependent;
-reproduce paper trends and compare modes and metrics on the same machine rather than requiring exact
-wall-clock equality.
+Open files under `artifact-results/claim3/`:
 
-The table in `paper-comparison.md` must contain 90 matched rows,
-with the original paper and measured values. `paper-comparison.md` embeds
-three SVG figures, plotting time in seconds against `delta`.
-Each dimension/mode panel contains the paper and measured curves with equally
-spaced δ values and a shared, automatically scaled linear time axis. All plotted
-values must remain inside the axes, including when measurements are slower than
-the paper.
+| File | Contents |
+|---|---|
+| `summary.md` | Runtime and communication for all 90 parameter groups. |
+| `paper-comparison.md` | Results alongside Table 3, with nine runtime plots (one per `(metric, d)` pair). |
+| `unique-block.txt` | Execution log; check here if the run fails. |
 
-No correlation coefficients or mode-winner summaries are generated.
-Missing or mismatched configurations fail the comparison. See the
-[plotting guide](../paper-comparison.md) for the layout and axis behavior.
+Use the plots to compare runtime trends; exact times vary by machine.

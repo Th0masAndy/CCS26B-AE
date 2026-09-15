@@ -179,14 +179,22 @@ revision. Third-party code remains subject to its own license.
 
 ## 📊 Full reproduction
 
-Run 180 benchmark cases:
+Choose one evaluation option after the Quick start:
 
-- **Unique cell (90 cases):** normal and prefix modes, $L_\infty$,
+| Option | Purpose | Cases | Recommended RAM |
+|---|---|---:|---:|
+| `--full` | Reproduce all paper parameters in Tables 2 and 3 | 180 | 256 GiB |
+| `--partial` | Reproduce the paper subset at $n=2^{12}$, $d=2,4$ | 80 | 64 GiB |
+| `--mini` | Try a small benchmark at $n=2^{10}$, $d=2,4$ | 80 | 32 GiB |
+
+Full reproduction runs 180 benchmark cases:
+
+- **Unique cell (90 cases):** normal and prefix mode, $L_\infty$,
   $n\in\{2^8,2^{12},2^{16}\}$, $d\in\{2,4,6\}$, and
-  $\delta\in\{32,64,128,256,512\}$.
-- **Unique block (90 cases):** normal and prefix modes, $L_\infty$, $L_1$, and
+  $\delta\in\{32,64,128,256,512\}$
+- **Unique block (90 cases):** normal and prefix mode, $L_\infty$, $L_1$, and
   $L_2$, $n=2^{12}$, $d\in\{2,4,6\}$, and
-  $\delta\in\{32,64,128,256,512\}$.
+  $\delta\in\{32,64,128,256,512\}$
 
 ```bash
 ./scripts/reproduction/run.sh --full
@@ -234,9 +242,9 @@ leave memory headroom for the OS and allocator variation.
 
 ## Claims
 
-1. **[Claim 1: Protocol correctness](./claims/claim1/claim.md).** All implemented
-   FPSI protocols correctly recover fuzzy intersections under
-   the corresponding one-sided assumptions.
+1. **[Claim 1: Protocol correctness](./claims/claim1/claim.md).** The implemented
+   protocols correctly compute fuzzy private set intersection by outputting all
+   sender elements that are close to the receiver set.
 2. **[Claim 2: Unique-cell evaluation](./claims/claim2/claim.md).** The runtime
    and communication of the receiver-sided unique-cell $L_\infty$ protocols,
    in normal and prefix modes, are reproducible for the paper's parameter settings (Table 2).

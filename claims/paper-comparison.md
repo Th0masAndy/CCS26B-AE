@@ -1,9 +1,9 @@
 # Plotting against the paper
 
-`claim2/paper-results.csv` and `claim3/paper-results.csv` contain the 90 **Ours**
-and **Ours-Px** entries from [Table 2](./claim2/table2.png) and
-[Table 3](./claim3/table3.png), respectively. They are transcribed paper values,
-not measurements from this artifact run. Other protocols are excluded.
+`claim2/paper-results.csv` and `claim3/paper-results.csv` each contain 90 **Ours**
+and **Ours-Px** entries from Tables 2 and 3, respectively, verified against the
+paper's LaTeX source. They are paper values, not measurements from this artifact
+run. Other protocols are excluded. The CSV files are the reference for comparisons.
 `normal` means Ours, `prefix` means Ours-Px, and metric `0` means L-infinity.
 
 ## Automatic figures
@@ -15,9 +15,9 @@ After Claim 2 or Claim 3 completes, the wrapper writes:
 | `paper-plots/*.svg` | Paper and measured runtime curves |
 | `paper-comparison.md` | Figures and a table of matched time and communication values |
 
-Each figure fixes the set size and metric. Rows correspond to dimensions;
-columns separate Ours and Ours-Px. Claim 2 produces three figures for the full
-matrix, or one for `--light`; Claim 3 produces three figures for its three metrics.
+Each figure fixes the set size, dimension, and metric, with separate panels for
+Ours and Ours-Px. Claim 2 produces nine figures, one per `(n, d)` pair;
+Claim 3 produces nine figures, one per `(metric, d)` pair.
 
 - **Horizontal axis:** `delta` values (`32`, `64`, `128`, `256`, `512`) shown as
   equally spaced categories, not a numeric linear or logarithmic scale.
@@ -37,8 +37,7 @@ are removed when the same output directory is reused.
 
 Configurations are matched exactly by mode, assumption, side, metric, dimension,
 threshold, and set size. Missing, unexpected, or duplicate configurations fail
-rather than silently changing the plotted data. Claim 2 `--light` selects only
-the 30 matching paper entries at `n=4096`.
+rather than silently changing the plotted data.
 
 ## Runtime scope
 
@@ -63,12 +62,12 @@ No protocol rerun is required:
 ```bash
 python3 scripts/reproduction/compare_paper_results.py \
     --reference claims/claim2/paper-results.csv \
-    --results artifact-results/claim2-light/unique-cell.txt \
-    --size 4096 --output-dir artifact-results/claim2-light
+    --results artifact-results/claim2/unique-cell.txt \
+    --output-dir artifact-results/claim2
 ```
 
-For the complete Table 2 matrix, omit `--size`. For Table 3, use
-`claims/claim3/paper-results.csv` and the Claim 3 `unique-block.txt` log.
+For Table 3, use `claims/claim3/paper-results.csv` and the Claim 3
+`unique-block.txt` log.
 Add `--trials N` if the log was produced with `TRIALS=N` (default: 1).
 Plots read the original log values, not the rounded Markdown table.
 Legacy summary CSV files remain supported as inputs; no paired CSV reports are generated.

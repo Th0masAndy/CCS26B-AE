@@ -3,6 +3,12 @@
 set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+if (( $# > 1 )) || [[ ${1:---full} != --full ]]; then
+    echo "usage: $0 [--full]" >&2
+    echo "For partial reproduction or the mini benchmark, use ./scripts/reproduction/run.sh." >&2
+    exit 2
+fi
+
 RESULT_DIR=${FPSI_RESULT_DIR:-"$ROOT_DIR/artifact-results/claim3"}
 RAW_LOG="$RESULT_DIR/unique-block.txt"
 TRIALS=${TRIALS:-1}

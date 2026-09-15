@@ -1,16 +1,16 @@
 # Claim 1: protocol correctness
 
-We claim that **all 16 implemented one-sided FPSI modes recover the exact fuzzy
-intersection on the generated matching-boundary cases**, in addition to passing
-the planted-match smoke suite.
+We claim that **the implemented protocols correctly compute fuzzy private set
+intersection: they output all sender elements that are close to the receiver set**.
 
-## Matching-boundary coverage
+## Correctness test cases
 
 Inputs are nonempty sets of unsigned integer points satisfying the selected
-protocol's one-sided assumption. These tests concern matching behavior, not
-invalid inputs or integer-domain limits.
+protocol's one-sided assumption. These tests focus on correct matching behavior,
+especially at and around the distance threshold; they do not cover invalid
+inputs or integer-domain limits.
 
-We construct the following matching-boundary cases:
+We construct the following cases:
 
 - No matches and full intersections, including exact and fuzzy matches.
 - Distances `delta-1`, `delta`, and `delta+1`: match, match, and no match.
@@ -29,39 +29,44 @@ The checker invokes FPSI with `-i` and compares every point in `output.txt` with
 an independent Python integer-distance reference, rather than checking only
 the match count or a console success message.
 
-## Experiment command
+## Evaluation workflow
 
-From the artifact root, run:
+After building FPSI, run the complete Claim 1 evaluation from the artifact root:
 
 ```bash
 bash claims/claim1/run.sh
 ```
 
-The wrapper runs the existing quick smoke suite followed by the matching-boundary
-suite. Results are saved to `artifact-results/claim1/`; override the location with
-`FPSI_RESULT_DIR`. The existing smoke suite also checks prefix-parameter rejection.
+The wrapper automatically:
 
-To generate reusable point files and expected answers without running FPSI:
+1. Runs the quick smoke test and the prefix-parameter guard.
+2. Generates the correctness test data and exact reference intersections.
+3. Executes every applicable protocol configuration using file input.
+4. Compares every element in `output.txt` with the reference result.
+
+A successful default run performs 240 executions with no failures. Results are
+saved to `artifact-results/claim1/`; set `FPSI_RESULT_DIR` to use another
+directory. `TRIALS` defaults to 1 and repeats the complete correctness check.
+
+## Reusing test data (optional)
+
+Generate the point files and reference answers without running FPSI:
 
 ```bash
 python3 scripts/data/generate_boundary_data.py --output-dir /tmp/fpsi-matching-data
 ```
 
-To check those files:
+Then run the checker on those files:
 
 ```bash
 python3 scripts/data/check_boundary_inputs.py --data-dir /tmp/fpsi-matching-data \
     --output-dir artifact-results/matching-check
 ```
 
-`TRIALS` defaults to 1. Each boundary trial starts a separate process with
-`-try 1`, so the actual recovered points are checked on every execution.
-Input data is reproducible; protocol randomness remains fresh.
-
-## Resources
+## Requirements
 
 - Machine: one supported x86-64 host;
 - Memory: 16 GiB is sufficient;
-- Typical runtime: a few minutes after compilation with `TRIALS=1`.
+- Runtime: approximately 3–5 minutes after compilation with `TRIALS=1`.
 
 See [expected.md](./expected.md) for the pass criteria.

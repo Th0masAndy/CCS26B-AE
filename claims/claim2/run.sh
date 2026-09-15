@@ -3,33 +3,15 @@
 set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
-MODE=${1:---full}
-
-if (( $# > 1 )); then
-    echo "usage: $0 [--full|--light]" >&2
+if (( $# > 1 )) || [[ ${1:---full} != --full ]]; then
+    echo "usage: $0 [--full]" >&2
+    echo "For partial reproduction or the mini benchmark, use ./scripts/reproduction/run.sh." >&2
     exit 2
 fi
 
-case "$MODE" in
-    --full)
-        FPSI_NS="8 12 16"
-        expected_configurations=90
-        comparison_options=()
-        default_result_dir="$ROOT_DIR/artifact-results/claim2"
-        ;;
-    --light)
-        FPSI_NS="12"
-        expected_configurations=30
-        comparison_options=(--size 4096)
-        default_result_dir="$ROOT_DIR/artifact-results/claim2-light"
-        ;;
-    *)
-        echo "usage: $0 [--full|--light]" >&2
-        exit 2
-        ;;
-esac
-
-RESULT_DIR=${FPSI_RESULT_DIR:-"$default_result_dir"}
+FPSI_NS="8 12 16"
+expected_configurations=90
+RESULT_DIR=${FPSI_RESULT_DIR:-"$ROOT_DIR/artifact-results/claim2"}
 RAW_LOG="$RESULT_DIR/unique-cell.txt"
 TRIALS=${TRIALS:-1}
 export FPSI_NS FPSI_DIMS="2 4 6" TRIALS VERIFY=1
@@ -62,7 +44,7 @@ fi
 python3 "$ROOT_DIR/scripts/reproduction/compare_paper_results.py" \
     --reference "$ROOT_DIR/claims/claim2/paper-results.csv" \
     --results "$RAW_LOG" --trials "$TRIALS" \
-    --output-dir "$RESULT_DIR" "${comparison_options[@]}"
+    --output-dir "$RESULT_DIR"
 
 echo "📊 Summary: $RESULT_DIR/summary.md"
-echo "✅ Claim 2 ${MODE#--} complete: $result_rows configuration(s)"
+echo "✅ Claim 2 full complete: $result_rows configuration(s)"
