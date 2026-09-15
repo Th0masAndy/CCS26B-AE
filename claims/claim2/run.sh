@@ -27,7 +27,6 @@ if [[ ! -x "$ROOT_DIR/code/build/fpsi" ]]; then
 fi
 
 mkdir -p "$RESULT_DIR"
-"$ROOT_DIR/scripts/reproduction/collect_environment.sh" > "$RESULT_DIR/environment.txt"
 "$ROOT_DIR/scripts/reproduction/benchmark.sh" unique-cell | tee "$RAW_LOG"
 
 expected_checks=$((expected_configurations * TRIALS))

@@ -43,8 +43,8 @@ space for dependencies, build products, and results.
 \subsubsection{Software dependencies}
 The reference platform is Ubuntu 24.04; GCC 11 or newer with C++20 is
 required. Build scripts fetch pinned dependencies.
-Bash, CMake, Git, Python~3, and the packages listed in the root README are
-required. Internet access is needed for a fresh build. Result processing and
+Bash, CMake, Git, Python~3, and the system packages listed in
+\path{scripts/build/run.sh} are required. Internet access is needed for a fresh build. Result processing and
 SVG plotting use Python's standard library and our modules only; Matplotlib
 is not required. Docker is the recommended deployment method.
 
@@ -125,7 +125,7 @@ All 240 rows in \path{artifact-results/claim1/}\allowbreak
 expected answers, outputs, and logs remain available.
 
 \paragraph{E2: Unique-cell (C2, Table 2).}
-\emph{10 person-minutes + 3--3.5 compute-hours; 80\,GiB RAM recommended.}
+\emph{10 person-minutes + 3--4 compute-hours; 80\,GiB RAM recommended.}
 \textbf{Preparation:} Reserve an otherwise idle host.
 \textbf{Execution:} Run \texttt{bash} \path{claims/claim2/run.sh}.
 Both modes cover
@@ -138,7 +138,7 @@ runtime SVGs in \path{paper-plots/}, one per $(n,d)$ pair. The terminal reports
 reproduction or mini benchmark described in Notes on Reusability.
 
 \paragraph{E3: Unique-block (C3, Table 3).}
-\emph{10 person-minutes; 2--2.5 hours compute; 256\,GiB RAM recommended.}
+\emph{10 person-minutes; 2--3 hours compute; 256\,GiB RAM recommended.}
 \textbf{Preparation:} Reserve the full memory budget, especially for normal
 mode at $d=6$.
 \textbf{Execution:} Run \texttt{bash} \path{claims/claim3/run.sh}.

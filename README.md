@@ -53,12 +53,11 @@ Expected time on an 8-core machine:
 | Fresh build | 10–20 minutes | `✅ Build complete: .../code/build/fpsi` |
 | Quick reproduction | below 2 minutes | `✅ [smoke] PASS: 6 protocol cases and 1 parameter guard` |
 
-The quick workflow writes raw output, host information, and a Markdown summary to
+The quick workflow writes raw output and a Markdown summary to
 `artifact-results/`:
 
 ```text
 artifact-results/
-├── environment.txt
 ├── quick.txt
 └── summary.md
 ```
@@ -110,7 +109,7 @@ or unique-block).
 | Compiler is missing or older than GCC 11 | Install `build-essential`, or select a matching pair with `CC` and `CXX`. |
 | `Compiler mismatch` | Move `code/build` and `code/thirdparty` aside, then rebuild; do not reuse libraries built with another toolchain. |
 | Incomplete dependency directory | Remove only the dependency directory named by `scripts/build/run.sh`, then rerun it. |
-| Runtime differs from the paper | Record `environment.txt`, repeat the case, and compare trends and communication rather than exact wall-clock values. |
+| Runtime differs from the paper | Repeat the case and compare trends and communication rather than exact runtimes. |
 
 If a build was interrupted, do not pre-create `code/thirdparty/` contents manually.
 The build script is resumable and reports the exact incomplete directory when
@@ -179,7 +178,7 @@ revision. Third-party code remains subject to its own license.
 
 ## 📊 Full reproduction
 
-Choose one evaluation option after the Quick start:
+After the Quick start, choose an evaluation option based on your platform's available resources:
 
 | Option | Purpose | Cases | Recommended RAM |
 |---|---|---:|---:|
@@ -232,7 +231,7 @@ the paper's reported times.
 A host with **32 GiB RAM** is recommended.
 Results are saved to `artifact-results/mini/`.
 
-All modes save raw logs, environment information, and Markdown summaries.
+All modes save raw logs and Markdown summaries.
 Time budgets are estimates for the AMD EPYC 9554 reference host with
 `TRIALS=1`, excluding build time. Partial memory is based on a measured
 $n=2^{12},d=4,\delta=512$ unique-block normal case (33.5 GiB); mini memory

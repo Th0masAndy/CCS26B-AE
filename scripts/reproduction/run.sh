@@ -43,7 +43,6 @@ else
 fi
 echo "   Results: $RESULT_DIR"
 echo
-"$ROOT_DIR/scripts/reproduction/collect_environment.sh" > "$RESULT_DIR/environment.txt"
 
 summarize()
 {
