@@ -16,6 +16,7 @@ test/log
 /code/thirdparty/
 /bench-results/
 /artifact-results/
+/artifact-appendix/
 /release/
 /others/
 /reviews/

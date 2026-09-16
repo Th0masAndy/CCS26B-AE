@@ -3,6 +3,12 @@
 We claim that **the implemented protocols correctly compute fuzzy private set
 intersection: they output all sender elements that are close to the receiver set**.
 
+## Requirements
+
+- Machine: one supported x86-64 host;
+- Memory: 16 GiB is sufficient;
+- Runtime: approximately 3–5 minutes after compilation with `TRIALS=1`.
+
 ## Correctness test cases
 
 Inputs are nonempty sets of unsigned integer points satisfying the selected
@@ -62,11 +68,5 @@ Then run the checker on those files:
 python3 scripts/data/check_boundary_inputs.py --data-dir /tmp/fpsi-matching-data \
     --output-dir artifact-results/matching-check
 ```
-
-## Requirements
-
-- Machine: one supported x86-64 host;
-- Memory: 16 GiB is sufficient;
-- Runtime: approximately 3–5 minutes after compilation with `TRIALS=1`.
 
 See [expected.md](./expected.md) for the pass criteria.

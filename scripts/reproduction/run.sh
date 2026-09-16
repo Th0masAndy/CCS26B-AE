@@ -85,6 +85,18 @@ case "$MODE" in
         FPSI_NS="$nn" FPSI_DIMS="2 4" VERIFY=1 "$ROOT_DIR/scripts/reproduction/benchmark.sh" unique-block | tee "$RESULT_DIR/unique-block.txt"
         check_results "$RESULT_DIR/unique-block.txt" 60
         summarize "$RESULT_DIR/unique-cell.txt" "$RESULT_DIR/unique-block.txt"
+        for profile in unique-cell unique-block; do
+            reference_options=()
+            if [[ $MODE == --partial ]]; then
+                claim=claim2
+                [[ $profile == unique-block ]] && claim=claim3
+                reference_options=(--reference "$ROOT_DIR/claims/$claim/paper-results.csv")
+            fi
+            python3 "$ROOT_DIR/scripts/reproduction/compare_paper_results.py" \
+                "${reference_options[@]}" --results "$RESULT_DIR/$profile.txt" \
+                --output-dir "$RESULT_DIR" --name "$profile" \
+                --size "$((1 << nn))" --dimensions 2 4 --trials "$TRIALS"
+        done
         if [[ $MODE == --mini ]]; then
             echo "✅ Mini benchmark complete: $RESULT_DIR"
         else

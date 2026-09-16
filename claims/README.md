@@ -22,5 +22,6 @@ Use the shared [evaluation options](../README.md#-full-reproduction):
 - **Mini benchmark:** the same 80 combinations at $n=2^{10}$;
   `./scripts/reproduction/run.sh --mini`.
 
-Compare communication and runtime trends with the paper; exact wall-clock
-agreement is not required.
+Both options generate one runtime SVG per protocol family. Partial compares
+the matching paper parameters; mini plots measured results only, without paper curves.
+For paper comparisons, exact wall-clock agreement is not required.

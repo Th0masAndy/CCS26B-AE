@@ -72,8 +72,14 @@ Docker is the recommended way to build and run the artifact in a consistent envi
 
 ```bash
 docker build -f code/Dockerfile -t fpsi-ae .
-docker run --rm fpsi-ae ./scripts/reproduction/run.sh --quick
+mkdir -p artifact-results
+docker run --rm -v "$PWD/artifact-results:/home/FPSI/artifact-results" \
+    fpsi-ae ./scripts/reproduction/run.sh --quick
 ```
+
+Results remain in the host's `artifact-results/` directory. To run an evaluation,
+replace `./scripts/reproduction/run.sh --quick` with its command, such as
+`bash claims/claim2/run.sh`, keeping the same mount.
 
 ## 🗂️ Input data
 
@@ -215,6 +221,8 @@ modes, and the metrics used in each table (80 benchmark cases).
 **Estimated runtime: 25–35 minutes. Peak memory: approximately 35 GiB RSS.**
 A host with **64 GiB RAM** is recommended.
 Results are saved to `artifact-results/partial/`.
+Open `unique-cell-comparison.md` and `unique-block-comparison.md` for plots
+against the matching paper parameters.
 
 ### Mini benchmark (optional)
 
@@ -230,6 +238,8 @@ the paper's reported times.
 **Estimated runtime: 6–10 minutes. Peak memory: approximately 21 GiB RSS.**
 A host with **32 GiB RAM** is recommended.
 Results are saved to `artifact-results/mini/`.
+Open `unique-cell-runtime.md` and `unique-block-runtime.md` for measured-only
+plots. No paper curves are included because the paper does not report this set size.
 
 All modes save raw logs and Markdown summaries.
 Time budgets are estimates for the AMD EPYC 9554 reference host with

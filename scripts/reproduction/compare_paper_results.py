@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Plot paper and measured FPSI runtimes using dependency-free SVG figures."""
+"""Plot FPSI runtimes, optionally against the paper, using dependency-free SVG."""
 
 from __future__ import annotations
 
@@ -16,11 +16,15 @@ from summarize_results import KEY_FIELDS, parse_lines, positive_trials
 
 
 PLOT_FIELDS = ("assumption", "side", "metric", "size", "dimension")
+RUNTIME_SERIES = (
+    ("paper", "paper_runtime_s", "#64748b", "7 5"),
+    ("measured", "measured_runtime_s", "#2563eb", "none"),
+)
 SVG_NAMESPACE = "http://www.w3.org/2000/svg"
 ET.register_namespace("", SVG_NAMESPACE)
 
 
-def load_results(path, paper=False, size=None, trials=1):
+def load_results(path, paper=False, size=None, trials=1, dimensions=None):
     time_field = "runtime_s" if paper else "runtime_s_mean"
     comm_field = "communication_mb" if paper else "communication_mb_mean"
     required = set(KEY_FIELDS) | {time_field, comm_field}
@@ -46,6 +50,8 @@ def load_results(path, paper=False, size=None, trials=1):
                 for field in ("metric", "dimension", "delta", "size"):
                     row[field] = int(row[field])
                 if paper and size is not None and row["size"] != size:
+                    continue
+                if paper and dimensions is not None and row["dimension"] not in dimensions:
                     continue
                 row["runtime"] = float(source[time_field])
                 row["communication"] = float(source[comm_field])
@@ -87,7 +93,7 @@ def match_results(paper, measured):
 
 
 def time_axis(values):
-    """Round the upper limit above both series, with at least 15% headroom."""
+    """Round the upper limit above all plotted values, with at least 15% headroom."""
     target = max(values) * 1.15
     magnitude = 10 ** math.floor(math.log10(target / 5))
     fraction = target / 5 / magnitude
@@ -108,7 +114,8 @@ def element(parent, tag, text=None, **attributes):
 
 def draw_panel(root, rows, mode, dimension, left, top, width, height):
     sample = rows[0]
-    times = [row[field] for row in rows for field in ("paper_runtime_s", "measured_runtime_s")]
+    styles = [style for style in RUNTIME_SERIES if style[1] in sample]
+    times = [row[style[1]] for row in rows for style in styles]
     limit, ticks = time_axis(times)
     plot_left, plot_right = left + 76, left + width - 22
     plot_top, plot_bottom = top + 36, top + height - 47
@@ -148,9 +155,7 @@ def draw_panel(root, rows, mode, dimension, left, top, width, height):
     middle = (plot_top + plot_bottom) / 2
     element(panel, "text", "Time (s)", x=left + 18, y=middle, text_anchor="middle",
             font_size=13, transform=f"rotate(-90 {left + 18} {middle})")
-    for source, field, color, dash in (
-            ("paper", "paper_runtime_s", "#64748b", "7 5"),
-            ("measured", "measured_runtime_s", "#2563eb", "none")):
+    for source, field, color, dash in styles:
         series = element(panel, "g", class_="series", data_source=source)
         points = [(delta_positions[row["delta"]],
                    plot_bottom - row[field] / limit * (plot_bottom - plot_top))
@@ -170,7 +175,8 @@ def write_figure(path, rows):
     assumption = {"uniqCel": "Unique cell", "uniqBlk": "Unique block"}.get(sample["assumption"], sample["assumption"])
     if len({row["assumption"] for row in rows}) > 1:
         assumption = "FPSI"
-    title = f"{assumption} · paper vs. measured runtimes"
+    has_paper = "paper_runtime_s" in sample
+    title = f"{assumption} · {'paper vs. measured runtimes' if has_paper else 'measured runtimes'}"
     dimensions = sorted({row["dimension"] for row in rows})
     groups = defaultdict(list)
     for row in rows:
@@ -195,14 +201,17 @@ def write_figure(path, rows):
     element(root, "style", "text { font-family: Arial, Helvetica, sans-serif; fill: #0f172a; }")
     element(root, "rect", width=width, height=height, fill="#f8fafc")
     element(root, "text", title, x=margin, y=35, font_size=23, font_weight=600)
-    element(root, "text", "Original runtimes · equally spaced δ values · independently scaled panels",
+    subtitle = ("Original runtimes · equally spaced δ values · independently scaled panels"
+                if has_paper else "Measured results only · no paper reference for this benchmark")
+    element(root, "text", subtitle,
             x=margin, y=59, font_size=13, fill="#475569")
-    legend_left = (width - 250) / 2
-    for source, color, dash, position in (("Paper", "#64748b", "7 5", legend_left),
-                                          ("Measured", "#2563eb", "none", legend_left + 140)):
+    styles = [style for style in RUNTIME_SERIES if style[1] in sample]
+    legend_left = (width - (110 + 140 * (len(styles) - 1))) / 2
+    for index, (source, field, color, dash) in enumerate(styles):
+        position = legend_left + index * 140
         element(root, "line", x1=position, x2=position + 36, y1=83, y2=83,
                 stroke=color, stroke_width=2.4, stroke_dasharray=dash)
-        element(root, "text", source, x=position + 46, y=87, font_size=13)
+        element(root, "text", source.capitalize(), x=position + 46, y=87, font_size=13)
     for row_index, group in enumerate(panel_rows):
         for column_index, dimension in enumerate(dimensions):
             selected = sorted((row for row in group if row["dimension"] == dimension),
@@ -217,70 +226,106 @@ def write_figure(path, rows):
 
 
 def write_markdown(path, rows, figures, reference_path, measured_path):
-    lines = ["# Paper runtime plots", "",
-             f"Paper reference: {reference_path}",
+    has_paper = reference_path is not None
+    lines = ["# Paper runtime plots" if has_paper else "# Measured runtime plots", "",
+             f"Paper reference: {reference_path}" if has_paper else
+             "Measured results only. No paper reference is used for this benchmark.",
              f"Measurements: {measured_path}",
-             f"Matched {len(rows)} selected configurations.", "",
+             f"{'Matched' if has_paper else 'Plotted'} {len(rows)} selected configurations.", "",
              "Horizontal axis: equally spaced δ categories. Vertical axis: original runtime in seconds, on a linear scale.",
-             "Dashed gray lines show the paper; solid blue lines show the measurements.",
+             "Dashed gray lines show the paper; solid blue lines show the measurements." if has_paper else
+             "Solid blue lines show the measurements; there is no paper curve or comparison.",
              "All configurations share one figure: dimensions form columns; set sizes, metrics, and modes form rows.",
-             "Ours and Ours-Px have separate panels. Each panel scales to both series with at least 15% headroom.",
+             "Ours and Ours-Px have separate panels. Each panel scales to the plotted values with at least 15% headroom.",
              "Times are not normalized, and slower machines automatically receive a higher y-axis limit.", ""]
     for figure in figures:
         lines.extend([f"## {figure['title']}", "",
                       f"![{figure['title']}]({figure['path']})", ""])
+    columns = ("Paper time (s) | Measured time (s) | Paper comm. (MB) | Measured comm. (MB) |"
+               if has_paper else "Measured time (s) | Measured comm. (MB) |")
     lines.extend([
-        "## Matched measurements", "",
-        "| Mode | Assumption | Side | Metric | d | Delta | n | Trials | "
-        "Paper time (s) | Measured time (s) | Paper comm. (MB) | Measured comm. (MB) |",
-        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "## Matched measurements" if has_paper else "## Measurements", "",
+        "| Mode | Assumption | Side | Metric | d | Delta | n | Trials | " + columns,
+        "|---|---|---|---:|---:|---:|---:|---:|" + "---:|" * (4 if has_paper else 2),
     ])
     for row in rows:
+        values = (f"{row['paper_runtime_s']} | {row['measured_runtime_s']} | "
+                  f"{row['paper_communication_mb']} | {row['measured_communication_mb']} |"
+                  if has_paper else
+                  f"{row['measured_runtime_s']} | {row['measured_communication_mb']} |")
         lines.append(
             f"| {row['mode']} | {row['assumption']} | {row['side']} | "
             f"L{row['metric']} | {row['dimension']} | {row['delta']} | "
             f"{row['size']} | {row['trials']} | "
-            f"{row['paper_runtime_s']} | {row['measured_runtime_s']} | "
-            f"{row['paper_communication_mb']} | {row['measured_communication_mb']} |"
+            + values
         )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def compare(reference_path, measured_path, output_dir, size=None, trials=1):
-    rows = match_results(load_results(reference_path, paper=True, size=size),
-                         load_results(measured_path, trials=trials))
+def compare(reference_path, measured_path, output_dir, size=None, trials=1, dimensions=None, name=None):
+    measured = load_results(measured_path, trials=trials)
+    if reference_path is not None:
+        rows = match_results(load_results(reference_path, paper=True, size=size, dimensions=dimensions),
+                             measured)
+    else:
+        rows = []
+        for key, actual in sorted(measured.items()):
+            if ((size is not None and actual["size"] != size) or
+                    (dimensions is not None and actual["dimension"] not in dimensions)):
+                raise ValueError(f"configuration outside selected size/dimensions: {key}")
+            rows.append({
+                **{field: actual[field] for field in KEY_FIELDS}, "trials": actual["trials"],
+                "measured_runtime_s": actual["runtime"],
+                "measured_communication_mb": actual["communication"],
+            })
     output_dir.mkdir(parents=True, exist_ok=True)
-    filename = "runtime-comparison.svg"
+    if name is not None:
+        filename = f"{name}-runtime.svg"
+        report_name = f"{name}-{'comparison' if reference_path is not None else 'runtime'}.md"
+    else:
+        filename = "runtime-comparison.svg" if reference_path is not None else "runtime.svg"
+        report_name = "paper-comparison.md" if reference_path is not None else "runtime.md"
     title = write_figure(output_dir / filename, rows)
     figures = [{"title": title, "path": filename}]
-    write_markdown(output_dir / "paper-comparison.md", rows, figures, reference_path, measured_path)
+    write_markdown(output_dir / report_name, rows, figures, reference_path, measured_path)
     legacy_dir = output_dir / "paper-plots"
     if legacy_dir.is_dir() and not legacy_dir.is_symlink():
-        for pattern in ("runtime-*-L*-n*.svg", filename):
+        for pattern in ("runtime-*-L*-n*.svg", "runtime-comparison.svg"):
             for previous in legacy_dir.glob(pattern):
                 previous.unlink()
         if not any(legacy_dir.iterdir()):
             legacy_dir.rmdir()
+    inputs = {measured_path.resolve()}
+    if reference_path is not None:
+        inputs.add(reference_path.resolve())
     for filename in ("paper-comparison.csv", "paper-statistics.csv", "paper-speedups.csv"):
         previous = output_dir / filename
-        if previous.resolve() not in {reference_path.resolve(), measured_path.resolve()}:
+        if previous.resolve() not in inputs:
             previous.unlink(missing_ok=True)
-    print(f"📈 Runtime plot: {output_dir / 'paper-comparison.md'} (1 figure)")
+    if name is not None:
+        previous = output_dir / f"{name}-{'runtime' if reference_path is not None else 'comparison'}.md"
+        if previous.resolve() not in inputs:
+            previous.unlink(missing_ok=True)
+    print(f"📈 Runtime plot: {output_dir / report_name} (1 figure)")
     return rows, figures
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--reference", type=Path, required=True)
+    parser.add_argument("--reference", type=Path, help="paper CSV; omit to plot measured results only")
     parser.add_argument("--results", type=Path, required=True, help="raw FPSI log (or a legacy summary CSV)")
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--size", type=int, help="select this set size from the paper (e.g. 4096)")
+    parser.add_argument("--size", type=int, help="expected set size; also filters the paper reference")
+    parser.add_argument("--dimensions", type=int, nargs="+",
+                        help="expected dimensions; also filters the paper reference")
+    parser.add_argument("--name", choices=("unique-cell", "unique-block"),
+                        help="name outputs when saving both protocol families in one directory")
     parser.add_argument("--trials", type=positive_trials, default=1,
                         help="internal trials per raw result row (default: 1; ignored for CSV input)")
     arguments = parser.parse_args()
     try:
         compare(arguments.reference, arguments.results, arguments.output_dir,
-                arguments.size, arguments.trials)
+                arguments.size, arguments.trials, arguments.dimensions, arguments.name)
     except (OSError, ValueError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1

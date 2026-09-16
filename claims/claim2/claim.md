@@ -4,6 +4,11 @@ We claim that **the runtime and communication evaluation of the receiver-sided
 unique-cell $L_\infty$ protocols in the main-paper unique-cell table is
 reproducible with this artifact**.
 
+## Requirements
+
+- Hardware: one supported x86-64 host; 80 GiB RAM recommended.
+- Runtime: approximately 3–4 hours after compilation with `TRIALS=1`.
+
 ## Parameter configurations
 
 The experiment evaluates both normal and prefix modes over:
@@ -44,10 +49,5 @@ After the run, open `paper-comparison.md` in the results directory to view
 one runtime comparison figure covering all parameter groups. Columns show
 dimensions; rows show set sizes and modes. Open
 `runtime-comparison.svg` in a browser to zoom in.
-
-## Requirements
-
-- Hardware: one supported x86-64 host; 80 GiB RAM recommended.
-- Runtime: approximately 3–4 hours after compilation with `TRIALS=1`.
 
 See [expected.md](./expected.md) for expected outputs.
