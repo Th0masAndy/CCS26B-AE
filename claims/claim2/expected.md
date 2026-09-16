@@ -17,7 +17,7 @@ Open files under `artifact-results/claim2/`:
 | File | Contents |
 |---|---|
 | `summary.md` | Runtime and communication for all 90 parameter groups. |
-| `paper-comparison.md` | Results alongside Table 2, with nine runtime plots (one per `(n, d)` pair). |
+| `paper-comparison.md` | Results alongside Table 2, with all runtime panels in one figure. |
 | `unique-cell.txt` | Execution log; check here if the run fails. |
 
 Use the plots to compare runtime trends; exact times vary by machine.

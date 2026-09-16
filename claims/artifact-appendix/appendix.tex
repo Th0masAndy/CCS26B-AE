@@ -132,8 +132,9 @@ Both modes cover
 $n=m\in\{2^8,2^{12},2^{16}\}$, $d\in\{2,4,6\}$, and
 $\delta\in\{32,64,128,256,512\}$: 90 configurations.
 \textbf{Results:} Under \path{artifact-results/claim2/}, expect 90 rows
-in both \path{summary.md} and \path{paper-comparison.md}, and nine
-runtime SVGs in \path{paper-plots/}, one per $(n,d)$ pair. The terminal reports
+in both \path{summary.md} and \path{paper-comparison.md}, and one
+overview SVG, \path{runtime-comparison.svg}. Its panels cover all set sizes, dimensions,
+and modes. The terminal reports
 \texttt{Claim 2 full complete}. For smaller runs, use the shared partial
 reproduction or mini benchmark described in Notes on Reusability.
 
@@ -145,7 +146,8 @@ mode at $d=6$.
 This evaluates $n=m=2^{12}$, the same dimensions and thresholds as E2,
 all three metrics, and both modes: 90 configurations.
 \textbf{Results:} Under \path{artifact-results/claim3/}, expect 90 rows
-in each summary/comparison Markdown table and nine runtime SVGs, one per metric/dimension pair.
+in each summary/comparison Markdown table and one overview SVG covering all metrics,
+dimensions, and modes.
 The terminal reports \texttt{Claim 3 complete}.
 
 For E2/E3, each trial must report \texttt{Total 16/16 matches found!}.

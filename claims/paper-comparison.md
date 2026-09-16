@@ -12,12 +12,12 @@ After Claim 2 or Claim 3 completes, the wrapper writes:
 
 | Output | Contents |
 |---|---|
-| `paper-plots/*.svg` | Paper and measured runtime curves |
-| `paper-comparison.md` | Figures and a table of matched time and communication values |
+| `runtime-comparison.svg` | All runtime comparison panels in one figure |
+| `paper-comparison.md` | The figure and a table of matched time and communication values |
 
-Each figure fixes the set size, dimension, and metric, with separate panels for
-Ours and Ours-Px. Claim 2 produces nine figures, one per `(n, d)` pair;
-Claim 3 produces nine figures, one per `(metric, d)` pair.
+Each claim produces one overview figure with 18 panels. Columns correspond to
+dimensions; rows group set sizes in Claim 2 and metrics in Claim 3, with separate
+rows for Ours and Ours-Px. Open the SVG in a browser to zoom in.
 
 - **Horizontal axis:** `delta` values (`32`, `64`, `128`, `256`, `512`) shown as
   equally spaced categories, not a numeric linear or logarithmic scale.

@@ -107,6 +107,7 @@ def element(parent, tag, text=None, **attributes):
 
 
 def draw_panel(root, rows, mode, dimension, left, top, width, height):
+    sample = rows[0]
     times = [row[field] for row in rows for field in ("paper_runtime_s", "measured_runtime_s")]
     limit, ticks = time_axis(times)
     plot_left, plot_right = left + 76, left + width - 22
@@ -117,12 +118,15 @@ def draw_panel(root, rows, mode, dimension, left, top, width, height):
         for index, delta in enumerate(deltas)
     }
     panel = element(root, "g", class_="panel", data_mode=mode, data_dimension=dimension,
+                    data_assumption=sample["assumption"], data_side=sample["side"],
+                    data_metric=sample["metric"], data_size=sample["size"],
                     data_y_max=limit, data_plot_top=plot_top, data_plot_bottom=plot_bottom,
                     data_plot_left=plot_left, data_plot_right=plot_right, data_x_scale="categorical")
     element(panel, "rect", x=left, y=top, width=width, height=height, rx=8,
             fill="white", stroke="#e2e8f0")
     name = "Ours (normal)" if mode == "normal" else "Ours-Px (prefix)"
-    element(panel, "text", f"{name}  ·  d = {dimension}", x=left + width / 2,
+    metric = {0: "L∞", 1: "L1", 2: "L2"}.get(sample["metric"], f"L{sample['metric']}")
+    element(panel, "text", f"{name} · {metric} · n = {sample['size']} · d = {dimension}", x=left + width / 2,
             y=top + 23, text_anchor="middle", font_size=14, font_weight=600)
     for tick in ticks:
         position = plot_bottom - tick / limit * (plot_bottom - plot_top)
@@ -163,38 +167,50 @@ def draw_panel(root, rows, mode, dimension, left, top, width, height):
 def write_figure(path, rows):
     modes = [mode for mode in ("normal", "prefix") if any(row["mode"] == mode for row in rows)]
     sample = rows[0]
-    dimension = sample["dimension"]
     assumption = {"uniqCel": "Unique cell", "uniqBlk": "Unique block"}.get(sample["assumption"], sample["assumption"])
-    metric = {0: "L∞", 1: "L1", 2: "L2"}.get(sample["metric"], f"L{sample['metric']}")
-    title = f"{assumption} · {metric} · n = {sample['size']} · d = {dimension}"
-    width, gap, margin, header, panel_height = 1120, 24, 24, 104, 340
-    panel_width = (width - 2 * margin - gap * (len(modes) - 1)) / len(modes)
-    height = header + panel_height + gap
+    if len({row["assumption"] for row in rows}) > 1:
+        assumption = "FPSI"
+    title = f"{assumption} · paper vs. measured runtimes"
+    dimensions = sorted({row["dimension"] for row in rows})
+    groups = defaultdict(list)
+    for row in rows:
+        groups[tuple(row[field] for field in PLOT_FIELDS[:-1])].append(row)
+    panel_rows = [
+        [row for row in groups[key] if row["mode"] == mode]
+        for key in sorted(groups)
+        for mode in modes if any(row["mode"] == mode for row in groups[key])
+    ]
+    gap, margin, header, panel_width, panel_height = 24, 24, 104, 500, 280
+    width = 2 * margin + len(dimensions) * panel_width + (len(dimensions) - 1) * gap
+    height = header + len(panel_rows) * (panel_height + gap)
     root = ET.Element(f"{{{SVG_NAMESPACE}}}svg", {
         "width": str(width), "height": str(height), "viewBox": f"0 0 {width} {height}",
         "role": "img", "aria-labelledby": "figure-title",
-        "data-assumption": str(sample["assumption"]), "data-side": str(sample["side"]),
-        "data-metric": str(sample["metric"]), "data-size": str(sample["size"]),
-        "data-dimension": str(dimension),
     })
+    for field in PLOT_FIELDS:
+        if len({row[field] for row in rows}) == 1:
+            root.set(f"data-{field}", str(sample[field]))
     element(root, "title", title, id="figure-title")
-    element(root, "desc", "Paper and measured runtimes in seconds. Delta values are equally spaced categories; each panel has its own automatic linear time scale.")
+    element(root, "desc", "All selected configurations in one figure. Columns group dimensions; rows group set sizes, metrics, and modes. Delta values are equally spaced categories; each panel has its own automatic linear time scale.")
     element(root, "style", "text { font-family: Arial, Helvetica, sans-serif; fill: #0f172a; }")
     element(root, "rect", width=width, height=height, fill="#f8fafc")
     element(root, "text", title, x=margin, y=35, font_size=23, font_weight=600)
     element(root, "text", "Original runtimes · equally spaced δ values · independently scaled panels",
             x=margin, y=59, font_size=13, fill="#475569")
-    for source, color, dash, position in (("Paper", "#64748b", "7 5", margin),
-                                          ("Measured", "#2563eb", "none", margin + 140)):
+    legend_left = (width - 250) / 2
+    for source, color, dash, position in (("Paper", "#64748b", "7 5", legend_left),
+                                          ("Measured", "#2563eb", "none", legend_left + 140)):
         element(root, "line", x1=position, x2=position + 36, y1=83, y2=83,
                 stroke=color, stroke_width=2.4, stroke_dasharray=dash)
         element(root, "text", source, x=position + 46, y=87, font_size=13)
-    for column_index, mode in enumerate(modes):
-        selected = sorted((row for row in rows if row["mode"] == mode),
-                          key=lambda row: row["delta"])
-        draw_panel(root, selected, mode, dimension,
-                   margin + column_index * (panel_width + gap),
-                   header, panel_width, panel_height)
+    for row_index, group in enumerate(panel_rows):
+        for column_index, dimension in enumerate(dimensions):
+            selected = sorted((row for row in group if row["dimension"] == dimension),
+                              key=lambda row: row["delta"])
+            if selected:
+                draw_panel(root, selected, selected[0]["mode"], dimension,
+                           margin + column_index * (panel_width + gap),
+                           header + row_index * (panel_height + gap), panel_width, panel_height)
     ET.indent(root)
     ET.ElementTree(root).write(path, encoding="utf-8", xml_declaration=True)
     return title
@@ -207,6 +223,7 @@ def write_markdown(path, rows, figures, reference_path, measured_path):
              f"Matched {len(rows)} selected configurations.", "",
              "Horizontal axis: equally spaced δ categories. Vertical axis: original runtime in seconds, on a linear scale.",
              "Dashed gray lines show the paper; solid blue lines show the measurements.",
+             "All configurations share one figure: dimensions form columns; set sizes, metrics, and modes form rows.",
              "Ours and Ours-Px have separate panels. Each panel scales to both series with at least 15% headroom.",
              "Times are not normalized, and slower machines automatically receive a higher y-axis limit.", ""]
     for figure in figures:
@@ -233,26 +250,22 @@ def compare(reference_path, measured_path, output_dir, size=None, trials=1):
     rows = match_results(load_results(reference_path, paper=True, size=size),
                          load_results(measured_path, trials=trials))
     output_dir.mkdir(parents=True, exist_ok=True)
-    plot_dir = output_dir / "paper-plots"
-    plot_dir.mkdir(exist_ok=True)
-    groups = defaultdict(list)
-    for row in rows:
-        groups[tuple(row[field] for field in PLOT_FIELDS)].append(row)
-    figures = []
-    for index, (key, group) in enumerate(sorted(groups.items()), 1):
-        filename = f"runtime-{index}-L{key[2]}-n{key[3]}-d{key[4]}.svg"
-        title = write_figure(plot_dir / filename, group)
-        figures.append({"title": title, "path": f"paper-plots/{filename}"})
+    filename = "runtime-comparison.svg"
+    title = write_figure(output_dir / filename, rows)
+    figures = [{"title": title, "path": filename}]
     write_markdown(output_dir / "paper-comparison.md", rows, figures, reference_path, measured_path)
-    current_files = {Path(figure["path"]).name for figure in figures}
-    for previous in plot_dir.glob("runtime-*-L*-n*.svg"):
-        if previous.name not in current_files:
-            previous.unlink()
+    legacy_dir = output_dir / "paper-plots"
+    if legacy_dir.is_dir() and not legacy_dir.is_symlink():
+        for pattern in ("runtime-*-L*-n*.svg", filename):
+            for previous in legacy_dir.glob(pattern):
+                previous.unlink()
+        if not any(legacy_dir.iterdir()):
+            legacy_dir.rmdir()
     for filename in ("paper-comparison.csv", "paper-statistics.csv", "paper-speedups.csv"):
         previous = output_dir / filename
         if previous.resolve() not in {reference_path.resolve(), measured_path.resolve()}:
             previous.unlink(missing_ok=True)
-    print(f"📈 Runtime plots: {output_dir / 'paper-comparison.md'} ({len(figures)} figures)")
+    print(f"📈 Runtime plot: {output_dir / 'paper-comparison.md'} (1 figure)")
     return rows, figures
 
 

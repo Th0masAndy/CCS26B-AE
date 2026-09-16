@@ -41,8 +41,9 @@ For smaller runs, use the shared
 ## Comparison with Table 3 in the Paper
 
 After the run, open `paper-comparison.md` in the results directory to view
-nine runtime comparison figures, one per `(metric, d)` pair. The SVG files in
-`paper-plots/` can also be opened in a browser.
+one runtime comparison figure covering all parameter groups. Columns show
+dimensions; rows show metrics and modes. Open
+`runtime-comparison.svg` in a browser to zoom in.
 
 ## Requirements
 
