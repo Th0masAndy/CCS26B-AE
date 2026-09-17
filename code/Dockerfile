@@ -35,4 +35,4 @@ RUN cd /home/FPSI && \
 
 WORKDIR /home/FPSI
 
-CMD ["./code/build/fpsi", "-h"]
+CMD ["bash", "-c", "./scripts/reproduction/run.sh --quick && exec bash"]

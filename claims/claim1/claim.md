@@ -7,7 +7,7 @@ intersection: they output all sender elements that are close to the receiver set
 
 - Machine: one supported x86-64 host;
 - Memory: 16 GiB is sufficient;
-- Runtime: approximately 3–5 minutes after compilation with `TRIALS=1`.
+- Runtime: approximately 80–120 seconds after compilation with `TRIALS=1`.
 
 ## Correctness test cases
 

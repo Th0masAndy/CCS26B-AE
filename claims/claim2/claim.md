@@ -7,7 +7,7 @@ reproducible with this artifact**.
 ## Requirements
 
 - Hardware: one supported x86-64 host; 80 GiB RAM recommended.
-- Runtime: approximately 3–4 hours after compilation with `TRIALS=1`.
+- Runtime: approximately 3–5 hours after compilation with `TRIALS=1`.
 
 ## Parameter configurations
 

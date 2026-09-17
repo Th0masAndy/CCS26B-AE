@@ -33,8 +33,8 @@ namespace {
 // while limiting the maximum configuration to four batches.
 constexpr u64 kPrefixBatchPoints = 1ULL << 14;
 
-struct PrefixDistanceInput {
-    SoOpprfInput soOpprf;
+struct PrefixDistanceQueries {
+    std::vector<block> queryKeys;
     std::vector<u64> localOffsets;
     u64 groupSize;
 };
@@ -225,29 +225,22 @@ SoOpprfInput makePrefixL0Input(
 }
 
 // Layout: [point][dimension][neighbor][side][prefix], also used by localOffsets.
-PrefixDistanceInput makePrefixDistanceInput(
+PrefixDistanceQueries makePrefixDistanceQueries(
     const PointSet &sendSet,
-    const PointSet &recvSet,
     u64 n,
     std::size_t dimension,
     int delta,
-    const std::vector<u64> &prefixLens,
-    u64 encodedPrefixCount)
+    const std::vector<u64> &prefixLens)
 {
     const u64 cellCount = 1ULL << dimension;
     const u64 halfPrefixLen = prefixLens.size();
     const u64 groupSize = 2 * halfPrefixLen;
     const u64 queryCount = n * dimension * cellCount * groupSize;
-    const u64 encodedCount = 2 * n * dimension * encodedPrefixCount;
-
-    PrefixDistanceInput input {
-        {},
+    PrefixDistanceQueries input {
+        std::vector<block>(queryCount),
         std::vector<u64>(queryCount),
         groupSize,
     };
-    input.soOpprf.keys.reserve(encodedCount);
-    input.soOpprf.values.reserve(encodedCount);
-    input.soOpprf.queryKeys.resize(queryCount);
 
     for (u64 i = 0; i < n; ++i) {
         const auto neighbors = neigh(sendSet[i], delta);
@@ -268,7 +261,7 @@ PrefixDistanceInput makePrefixDistanceInput(
                             + z * groupSize
                             + side * halfPrefixLen + k;
                         const u64 domain = (j << 8) | (side << 4);
-                        input.soOpprf.queryKeys[index] =
+                        input.queryKeys[index] =
                             blake3_hash(neighbors[z], domain, prefixes[k]);
                         input.localOffsets[index] = side == 0
                             ? upBound(prefixes[k]) - sendSet[i][j]
@@ -278,6 +271,22 @@ PrefixDistanceInput makePrefixDistanceInput(
             }
         }
     }
+
+    return input;
+}
+
+SoOpprfInput makePrefixDistanceInput(
+    const PointSet &recvSet,
+    u64 n,
+    std::size_t dimension,
+    int delta,
+    const std::vector<u64> &prefixLens,
+    u64 encodedPrefixCount)
+{
+    const u64 encodedCount = 2 * n * dimension * encodedPrefixCount;
+    SoOpprfInput input;
+    input.keys.reserve(encodedCount);
+    input.values.reserve(encodedCount);
 
     for (u64 i = 0; i < n; ++i) {
         const auto cellId = cell(recvSet[i], 2 * delta);
@@ -292,21 +301,21 @@ PrefixDistanceInput makePrefixDistanceInput(
                 prefixLens);
 
             for (const auto &prefix : lowerPrefixes) {
-                input.soOpprf.keys.push_back(
+                input.keys.push_back(
                     blake3_hash(cellId, j << 8, prefix));
-                input.soOpprf.values.push_back(
+                input.values.push_back(
                     block(0, recvSet[i][j] - upBound(prefix)));
             }
             for (const auto &prefix : upperPrefixes) {
-                input.soOpprf.keys.push_back(
+                input.keys.push_back(
                     blake3_hash(cellId, (j << 8) | (1 << 4), prefix));
-                input.soOpprf.values.push_back(
+                input.values.push_back(
                     block(0, upBound(prefix) - recvSet[i][j]));
             }
         }
     }
 
-    padKeyValues(input.soOpprf, encodedCount);
+    padKeyValues(input, encodedCount);
     return input;
 }
 
@@ -983,27 +992,32 @@ void fuzzyPsiUniqueCellPxLp(const FpsiConfig &config)
 
     oc::Timer timer;
     timer.setTimePoint("begin");
+    auto keyValues = makePrefixDistanceInput(
+        recvSet,
+        config.n,
+        config.dimension,
+        config.delta,
+        prefixLens,
+        encodedPrefixCount);
     auto sockets = coproto::AsioSocket::makePair();
     auto preprocessingDone = timer.setTimePoint("local preprocess done");
 
     for (int trial = 0; trial < config.trials; ++trial) {
-        auto input = makePrefixDistanceInput(
+        auto input = makePrefixDistanceQueries(
             sendSet,
-            recvSet,
             config.n,
             config.dimension,
             config.delta,
-            prefixLens,
-            encodedPrefixCount);
+            prefixLens);
         timer.setTimePoint("input preparation done");
         std::vector<block> sendShares(
-            input.soOpprf.queryKeys.size());
+            input.queryKeys.size());
         std::vector<block> recvShares(
-            input.soOpprf.queryKeys.size());
+            input.queryKeys.size());
         runSoOpprf(
-            input.soOpprf.keys,
-            input.soOpprf.values,
-            input.soOpprf.queryKeys,
+            keyValues.keys,
+            keyValues.values,
+            input.queryKeys,
             recvShares,
             sendShares,
             sockets,

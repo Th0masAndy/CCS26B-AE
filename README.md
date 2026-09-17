@@ -45,13 +45,13 @@ families for $L_\infty$, $L_1$, and $L_2$ distances.
    ```
 
 
-Expected time on an 8-core machine:
+Estimated time:
 
 | Step | Typical time | Success indicator |
 |---|---:|---|
-| Environment preflight | below 1 minute | `✅ Preflight passed` |
+| Environment preflight | below 1 second | `✅ Preflight passed` |
 | Fresh build | 10–20 minutes | `✅ Build complete: .../code/build/fpsi` |
-| Quick reproduction | below 2 minutes | `✅ [smoke] PASS: 6 protocol cases and 1 parameter guard` |
+| Quick reproduction | 3–5 seconds | `✅ [smoke] PASS: 6 protocol cases and 1 parameter guard` |
 
 The quick workflow writes raw output and a Markdown summary to
 `artifact-results/`:
@@ -68,18 +68,22 @@ Use a dedicated 256 GiB host for the complete evaluation.
 
 ### 🐳 Docker build (Recommended)
 
-Docker is the recommended way to build and run the artifact in a consistent environment:
+Docker is the recommended way to build and run the artifact in a consistent
+environment. The image build checks the environment and compiles FPSI.
+Starting the container runs the quick validation, then opens an interactive shell:
 
 ```bash
 docker build -f code/Dockerfile -t fpsi-ae .
-mkdir -p artifact-results
-docker run --rm -v "$PWD/artifact-results:/home/FPSI/artifact-results" \
-    fpsi-ae ./scripts/reproduction/run.sh --quick
+docker run -it --name fpsi-ae fpsi-ae
 ```
 
-Results remain in the host's `artifact-results/` directory. To run an evaluation,
-replace `./scripts/reproduction/run.sh --quick` with its command, such as
-`bash claims/claim2/run.sh`, keeping the same mount.
+Run the desired [claim commands](./claims/README.md) manually inside the container.
+Results stay in the container's `artifact-results/` directory until the container
+is deleted. The container is kept after exit; to reopen it:
+
+```bash
+docker start -ai fpsi-ae
+```
 
 ## 🗂️ Input data
 
@@ -205,7 +209,7 @@ Full reproduction runs 180 benchmark cases:
 ./scripts/reproduction/run.sh --full
 ```
 
-**Estimated runtime: 5–6 hours. Peak memory: approximately 200 GiB RSS.**
+**Estimated runtime: 5–8 hours. Peak memory: approximately 200 GiB RSS.**
 A host with **256 GiB RAM** is recommended.
 
 ### Partial reproduction (optional)
@@ -218,7 +222,7 @@ modes, and the metrics used in each table (80 benchmark cases).
 ./scripts/reproduction/run.sh --partial
 ```
 
-**Estimated runtime: 25–35 minutes. Peak memory: approximately 35 GiB RSS.**
+**Estimated runtime: 20–30 minutes. Peak memory: approximately 35 GiB RSS.**
 A host with **64 GiB RAM** is recommended.
 Results are saved to `artifact-results/partial/`.
 Open `unique-cell-comparison.md` and `unique-block-comparison.md` for plots
@@ -242,8 +246,10 @@ Open `unique-cell-runtime.md` and `unique-block-runtime.md` for measured-only
 plots. No paper curves are included because the paper does not report this set size.
 
 All modes save raw logs and Markdown summaries.
-Time budgets are estimates for the AMD EPYC 9554 reference host with
-`TRIALS=1`, excluding build time. Partial memory is based on a measured
+Full and partial time ranges are rounded from 1–1.5× the reference wall-clock time on
+an AMD EPYC 9554 host with `TRIALS=1`, excluding build time. Full uses the
+complete run; partial uses the matching cases, including preprocessing.
+Mini retains its earlier time estimate. Partial memory is based on a measured
 $n=2^{12},d=4,\delta=512$ unique-block normal case (33.5 GiB); mini memory
 is the maximum of the corresponding 80 cases in the earlier $n=2^{10}$
 resource sweep (20.4 GiB). Slower hosts or additional trials need more time;

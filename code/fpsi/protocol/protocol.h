@@ -4,7 +4,8 @@
 
 // Local benchmarks: generate inputs, run both parties, and report trial means.
 // L0 = L-infinity; Lp = L1/L2; Px = prefix optimization.
-// Time starts at "local preprocess done"; per-trial input preparation is included.
+// Time starts at "local preprocess done": key/value construction is excluded,
+// while per-trial query construction and OKVS encoding/decoding are included.
 // Communication uses MiB (labeled MB).
 
 // Unique-cell assumption, receiver-sided protocols.

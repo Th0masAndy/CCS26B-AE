@@ -13,6 +13,9 @@ these commands from the repository root:
 to change the output directory. Each claim's `claim.md` describes the experiment;
 `expected.md` lists output files and pass criteria.
 
+Runtime estimates are rounded from 1–1.5× the measured wall-clock time on the AMD EPYC
+9554 reference host with `TRIALS=1`, excluding build time.
+
 ## Smaller runs
 
 Use the shared [evaluation options](../README.md#-full-reproduction):
@@ -22,6 +25,34 @@ Use the shared [evaluation options](../README.md#-full-reproduction):
 - **Mini benchmark:** the same 80 combinations at $n=2^{10}$;
   `./scripts/reproduction/run.sh --mini`.
 
-Both options generate one runtime SVG per protocol family. Partial compares
-the matching paper parameters; mini plots measured results only, without paper curves.
-For paper comparisons, exact wall-clock agreement is not required.
+## Runtime comparison
+
+Claim 2 and Claim 3 automatically compare measured runtime and communication
+with the paper's Ours/Ours-Px results in [Table 2](./claim2/paper-results.csv)
+and [Table 3](./claim3/paper-results.csv).
+
+Open the report in the corresponding results directory:
+
+| Run | Report |
+|---|---|
+| Claim 2 or Claim 3 | `paper-comparison.md` |
+| Partial | `unique-cell-comparison.md`, `unique-block-comparison.md` |
+| Mini | `unique-cell-runtime.md`, `unique-block-runtime.md` |
+
+Each report links to one SVG figure per protocol family. The x-axis shows
+`delta`; the y-axis shows time in seconds. Dashed gray lines show paper results;
+solid blue lines show measurements. Partial compares only the tested subset;
+mini shows measurements only. Exact runtimes depend on the machine.
+
+Plotting uses only the Python standard library. To replot saved logs without
+rerunning protocols, see `python3 scripts/reproduction/compare_paper_results.py --help`.
+
+## Timing scope
+
+`Time(s)` is the average per-trial time, not the command's total runtime.
+All protocols use the same timing scope:
+
+- **Excluded:** input generation, OPPRF key/value construction (including
+  padding), and socket setup.
+- **Included:** query preparation, OPPRF (including OKVS encoding/decoding),
+  MPC, final transfer, and correctness checks when enabled.
