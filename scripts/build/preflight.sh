@@ -38,7 +38,7 @@ arch=$(uname -m)
     || fail "AMD64/x86_64 is required (found $arch)"
 
 cpu_flags=$(awk -F: '/^flags[[:space:]]*:/ { print $2; exit }' /proc/cpuinfo 2>/dev/null || true)
-for feature in aes pclmulqdq sse2 sse4_1; do
+for feature in aes pclmulqdq sse2 pni ssse3 sse4_1 sse4_2 popcnt avx avx2; do
     if [[ " $cpu_flags " == *" $feature "* ]]; then
         pass "CPU feature $feature"
     else

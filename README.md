@@ -10,7 +10,7 @@ families for $L_\infty$, $L_1$, and $L_2$ distances.
 - **Reference platform:** Ubuntu 24.04 on x86_64.
 - **Compiler requirement:** GCC 11 or newer with C++20 support.
 - **Memory requirement:** 256 GiB for full reproduction, 64 GiB for partial reproduction, and 32 GiB for the mini benchmark.
-- **Required CPU instructions:** AES, PCLMUL, SSE2, and SSE4.1.
+- **Required CPU instructions:** AVX2, AES, PCLMUL, and SSE4.2. AVX-512 is not mandatory.
 - **Unsupported platforms:** ARM64 and Apple Silicon, including AMD64 emulation.
 
 ## 🚀 Quick start
