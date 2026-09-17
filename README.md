@@ -63,27 +63,31 @@ artifact-results/
 ```
 
 The build and smoke test need at least 16 GiB RAM. The full unique-cell evaluation
-peaks at 62.8 GiB, while unique-block normal mode peaks at 198.5 GiB at $n=2^{12}$.
+peaks at approximately 64 GiB, while unique-block normal mode peaks at approximately
+199 GiB at $n=2^{12}$.
 Use a dedicated 256 GiB host for the complete evaluation.
 
 ### 🐳 Docker build (Recommended)
 
 Docker is the recommended way to build and run the artifact in a consistent
-environment. The image build checks the environment and compiles FPSI.
-Starting the container runs the quick validation, then opens an interactive shell:
+environment. Pull the prebuilt image from Docker Hub:
+
+```bash
+docker pull 4ncly/fpsi-ae:latest
+docker run -it --name fpsi-ae 4ncly/fpsi-ae:latest
+```
+
+Or build locally:
 
 ```bash
 docker build -f code/Dockerfile -t fpsi-ae .
 docker run -it --name fpsi-ae fpsi-ae
 ```
 
+Starting the container runs the quick validation, then opens a Bash shell.
 Run the desired [claim commands](./claims/README.md) manually inside the container.
 Results stay in the container's `artifact-results/` directory until the container
-is deleted. The container is kept after exit; to reopen it:
-
-```bash
-docker start -ai fpsi-ae
-```
+is deleted. The container is kept after exit.
 
 ## 🗂️ Input data
 
