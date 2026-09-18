@@ -9,6 +9,9 @@
 
 extern bool LOG;
 
+// Multiplies one private u64 factor per party, returning additive shares modulo 2^64.
+// Paired calls borrow connected sockets and run concurrently; size in/out to num
+// and zero out before use. Adapters own internal state and must not be copied.
 class MulSender {
 public:
     MulSender(uint64_t num_, coproto::Socket *socket_);
@@ -37,7 +40,7 @@ private:
     osuCrypto::PRNG *prng;
 };
 
-// Output shares add to sendIn * recvIn modulo 2^64; inputs are private factors.
+// Runs both parties locally; output shares add to sendIn * recvIn modulo 2^64.
 // Use equally sized inputs and zero-initialized outputs; outputs are accumulated.
 // roleInverse swaps sockets, not input/output pairing.
 void runMul(

@@ -12,6 +12,9 @@
 
 extern bool LOG;
 
+// Converts the low 64 bits of XOR-shared blocks to additive shares modulo 2^64.
+// Paired calls borrow connected sockets and run concurrently; size blk/val to num
+// and zero val before use. Adapters own internal state and must not be copied.
 class B2aSender {
 public:
     B2aSender(uint64_t num_, coproto::Socket *socket_);
@@ -40,7 +43,7 @@ private:
     osuCrypto::PRNG *prng;
 };
 
-// Output shares add to low(sendShares ^ recvShares) modulo 2^64.
+// Runs both parties locally; output shares add to low(sendShares ^ recvShares).
 // Use equally sized inputs and zero-initialized outputs; outputs are accumulated.
 // roleInverse swaps sockets, not input/output pairing.
 void runB2a(

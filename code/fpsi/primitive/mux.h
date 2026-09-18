@@ -14,8 +14,13 @@ using namespace osuCrypto;
 
 extern bool LOG;
 
+// Returns XOR-shared equality bits for the low 40 + ceil(log2(input.size())) bits.
+// Both parties call concurrently with complementary idx values (0/1); out is resized.
 void ssPEQT(u32 idx, std::vector<block> &input, BitVector &out, Socket &chl, u32 numThreads);
 
+// Mux gates shared values by ssPEQT equality; block shares use XOR, u64 shares add modulo 2^64.
+// Paired adapters borrow connected sockets, run concurrently, and must not be copied.
+// Size per-item inputs/results to num; grouped EqSel/EqConstant use the contracts below.
 class MuxSender {
 public:
     MuxSender(uint64_t num_, coproto::Socket *socket_);
@@ -80,6 +85,9 @@ private:
     osuCrypto::PRNG *prng;
 };
 
+// Helpers run both parties locally; roleInverse swaps sockets, not buffer pairing.
+// Reveals sendValues ^ recvValues on selector equality, random blocks otherwise.
+// All four input vectors must have the same size; equality uses ssPEQT's truncated labels.
 std::vector<block> runEqRandReveal(
     std::vector<block> &sendSelectors,
     std::vector<block> &recvSelectors,
@@ -88,6 +96,8 @@ std::vector<block> runEqRandReveal(
     std::array<coproto::AsioSocket, 2> &sockets,
     bool roleInverse = false);
 
+// Reveals sendValues ^ recvValues when (sendInputs + recvInputs) mod 2^64 < threshold,
+// random blocks otherwise. All four input vectors must have the same size.
 std::vector<block> runCmpRandReveal(
     std::vector<u64> &sendInputs,
     std::vector<u64> &recvInputs,
@@ -97,6 +107,9 @@ std::vector<block> runCmpRandReveal(
     std::array<coproto::AsioSocket, 2> &sockets,
     bool roleInverse = false);
 
+// Grouped helpers require len > 0, equal input sizes divisible by len, and at most
+// one matching selector per group. Pre-size outputs to input.size()/len and zero them.
+// EqSel returns shares of the selected value, or a random value when no selector matches.
 void runEqSel(
     std::vector<block> &sendSelectors,
     std::vector<block> &recvSelectors,
@@ -108,6 +121,7 @@ void runEqSel(
     std::array<coproto::AsioSocket, 2> &sockets,
     bool roleInverse = false);
 
+// Same grouping as EqSel, but reconstructs constant when no selector matches.
 void runEqConstant(
     std::vector<block> &sendSelectors,
     std::vector<block> &recvSelectors,
@@ -120,7 +134,7 @@ void runEqConstant(
     std::array<coproto::AsioSocket, 2> &sockets,
     bool roleInverse = false);
 
-
+// Selector-only overload: shares reconstruct to zero on a match, random otherwise.
 void runEqSel(
     std::vector<block> &sendSelectors,
     std::vector<block> &recvSelectors,

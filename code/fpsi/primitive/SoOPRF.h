@@ -8,14 +8,16 @@
 
 using namespace secJoin;
 
-// Borrows socket and owns internal state; do not copy these adapters.
+// Paired OPRF calls return XOR shares: y0 ^ y1 = PRF_key(x), in input order.
+// Agree on num/useOle, size x/y0/y1 to num, and run both roles concurrently.
+// Adapters borrow connected sockets and own internal state; do not copy them.
 // Benchmark setup retains a fixed PRF key and synthetic key-OT material.
-// so-OPRF with input \mathbb{F}_3 and output \mathbb{F}_2
 class SoOPRFSender {
 public:
     SoOPRFSender(uint64_t num_, uint64_t numThreads_, bool useOle_, coproto::Socket *socket_);
     ~SoOPRFSender();
 
+    // Compatibility no-op; initialization is handled by the adapter.
     void setup();
     void OPRF(std::vector<oc::block> &y0);
 

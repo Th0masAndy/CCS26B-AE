@@ -46,13 +46,3 @@ mini shows measurements only. Exact runtimes depend on the machine.
 
 Plotting uses only the Python standard library. To replot saved logs without
 rerunning protocols, see `python3 scripts/reproduction/compare_paper_results.py --help`.
-
-## Timing scope
-
-`Time(s)` is the average per-trial time, not the command's total runtime.
-All protocols use the same timing scope:
-
-- **Excluded:** input generation, OPPRF key/value construction (including
-  padding), and socket setup.
-- **Included:** query preparation, OPPRF (including OKVS encoding/decoding),
-  MPC, final transfer, and correctness checks when enabled.

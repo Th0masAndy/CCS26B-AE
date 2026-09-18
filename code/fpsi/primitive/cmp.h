@@ -13,6 +13,8 @@ const u64 M = 4;
 
 #define USE_CHEETAH true
 
+// Batched 1-out-of-16 OT: each sender row contains 16 two-bit messages.
+// The receiver supplies size choices in [0, 15] and a size-element output buffer.
 class NcoOTSender {
 public:
     NcoOTSender(u64 size)
@@ -61,6 +63,9 @@ private:
 
 // this code is from opencheetah and replaced the OT module with libOTe
 // Cheetah's variant MillionaireProtocol when USE_CHEETAH=1
+// Paired calls return num_cmps XOR-shared result bits and run concurrently.
+// Use matching counts/bitlengths, radix 4, and unsigned inputs fitting bitlength.
+// Create a fresh sender/receiver pair for each batch; do not copy these objects.
 class MillionaireProtocolSender {
 public:
     NcoOTSender *otpack;
@@ -80,8 +85,11 @@ public:
 
     ~MillionaireProtocolSender();
 
+    // XOR shares of whether the additive input sum is nonnegative in signed bitlength bits.
     void drelu(uint8_t *res, uint64_t *data, osuCrypto::Socket &chl);
 
+    // Tests sender > receiver (true) or sender < receiver (false); res/data have num_cmps entries.
+    // equality and this method's radix_base argument are unused; radix is set at construction.
     void compare(uint8_t *res, uint64_t *data, osuCrypto::Socket &chl, bool greater_than = true, bool equality = false, int radix_base = M);
 
     void set_leaf_ot_messages(uint8_t *ot_messages, uint8_t digit, int N, uint8_t mask_cmp, uint8_t mask_eq, bool greater_than, bool eq = true);

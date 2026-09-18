@@ -16,6 +16,9 @@ struct SoOpprfInput {
     std::vector<oc::block> queryKeys;
 };
 
+// num_ counts queries; num_kv_ counts programmed pairs. Size y0/y1 to num_.
+// Run paired adapters concurrently on borrowed sockets; do not copy them.
+// Shares reconstruct programmed values on matches; other queries are unflagged.
 class SoOPPRFSender : public SoOPRFSender {
 public:
     SoOPPRFSender(uint64_t num_, uint64_t num_kv_, uint64_t numThreads_, bool useOle_, coproto::Socket *socket_);
@@ -25,6 +28,7 @@ public:
 
     void OPPRF(const std::vector<oc::block> &encoding, std::vector<oc::block> &y0);
 
+    // Legacy declaration without an implementation; use OPPRF instead.
     task<> run_oprf(std::vector<oc::block> &y0);
 
 private:
@@ -42,7 +46,7 @@ private:
     OKVS *okvs;
 };
 
-// Matched queries reconstruct values via sendShares ^ recvShares; misses are unflagged.
+// Runs both parties locally; matched queries reconstruct values via sendShares ^ recvShares.
 // Size outputs to queryKeys.size(); sendShares/recvShares stay on sockets[0]/[1].
 // roleInverse swaps the programming/query roles, not those buffer associations.
 void runSoOpprf(

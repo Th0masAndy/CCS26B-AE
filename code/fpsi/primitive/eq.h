@@ -8,6 +8,9 @@
 
 using namespace volePSI;
 
+// PSI-backed equality over equally sized block sets; the receiver gets its matching indices.
+// Paired adapters must agree on num/noCompress and run concurrently on borrowed sockets.
+// Adapters own internal state and must not be copied.
 class PEqTSender {
 public:
     PEqTSender(uint64_t num_, uint64_t numThreads_, bool noCompress_, coproto::Socket *socket_);
@@ -38,13 +41,14 @@ private:
     coproto::Socket *socket;
 };
 
-// Returns recvInputs indices from set intersection, not position-wise equality.
+// Runs both parties locally; returns recvInputs indices, not position-wise equality.
 void runPeqt(
     std::vector<block> &sendInputs,
     std::vector<block> &recvInputs,
     std::vector<u64> &matches,
     std::array<coproto::AsioSocket, 2> &sockets);
 
+// Tests (sendDis[i] + recvDis[i]) mod 2^64 <= deltaPow on equally sized shares.
 // prefixLen must cover the interval decomposition. Matches index expanded
 // receiver prefixes; divide by prefixLen to recover distance-slot indices.
 void runIntervalTest(
