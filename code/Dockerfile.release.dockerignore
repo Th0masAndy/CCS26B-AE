@@ -1,0 +1,11 @@
+.git
+.cache
+code/build
+code/thirdparty
+others
+reviews
+artifact-results
+bench-results
+release
+core.*
+*.csv

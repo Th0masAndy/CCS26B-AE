@@ -75,15 +75,15 @@ done
 for compiler in "$FPSI_CC" "$FPSI_CXX"; do
     if command -v "$compiler" >/dev/null 2>&1; then
         if version=$(compiler_version "$compiler"); then
-            pass "$compiler $version meets the GCC 11+ requirement"
+            pass "$compiler $version meets the GCC/G++ 13+ requirement"
         else
             fail "Unsupported compiler: $compiler"
         fi
     elif ((BUILD_MODE)) && [[ ${FPSI_SKIP_SYSTEM_PACKAGES:-0} != 1 ]] \
-        && [[ $compiler == gcc || $compiler == g++ ]]; then
+        && [[ $compiler == gcc || $compiler == g++ || $compiler == gcc-13 || $compiler == g++-13 ]]; then
         warn "$compiler is not installed yet; scripts/build/run.sh will install it"
     else
-        fail "$compiler is unavailable; install build-essential or the selected GCC/G++ 11+ pair"
+        fail "$compiler is unavailable; install gcc-13 and g++-13, or select a matching GCC/G++ 13+ pair"
     fi
 done
 

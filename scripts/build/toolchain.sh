@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 
-FPSI_CC=${CC:-gcc}
-FPSI_CXX=${CXX:-g++}
+FPSI_CC=${CC:-gcc-13}
+FPSI_CXX=${CXX:-g++-13}
 
 compiler_version()
 {
     local compiler=$1 version macros
     if ! version=$("$compiler" -dumpfullversion -dumpversion 2>/dev/null); then
-        echo "Cannot run $compiler; install a matching GCC/G++ pair (version 11 or newer)." >&2
+        echo "Cannot run $compiler; install a matching GCC/G++ pair (version 13 or newer)." >&2
         return 1
     fi
-    if [[ ! $version =~ ^[0-9]+(\.[0-9]+)*$ ]] || (( ${version%%.*} < 11 )); then
-        echo "GCC 11 or newer is required: $compiler reports $version." >&2
+    if [[ ! $version =~ ^[0-9]+(\.[0-9]+)*$ ]] || (( ${version%%.*} < 13 )); then
+        echo "GCC/G++ 13 or newer is required: $compiler reports $version." >&2
         return 1
     fi
     if ! macros=$("$compiler" -dM -E -x c - </dev/null 2>/dev/null) \

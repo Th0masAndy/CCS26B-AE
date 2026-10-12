@@ -8,7 +8,7 @@ families for $L_\infty$, $L_1$, and $L_2$ distances.
 ## 🖥️ Platform requirements
 
 - **Reference platform:** Ubuntu 24.04 on x86_64.
-- **Compiler requirement:** GCC 11 or newer with C++20 support.
+- **Compiler requirement:** GCC/G++ 13 or newer with C++20 support.
 - **Memory requirement:** 256 GiB for full reproduction, 64 GiB for partial reproduction, and 32 GiB for the mini benchmark.
 - **Required CPU instructions:** AVX2, AES, PCLMUL, and SSE4.2. AVX-512 is not mandatory.
 - **Unsupported platforms:** ARM64 and Apple Silicon, including AMD64 emulation.
@@ -27,10 +27,10 @@ families for $L_\infty$, $L_1$, and $L_2$ distances.
 
 2. **Build FPSI**
 
-   The build script installs the required Ubuntu packages, fetches pinned
-   dependencies into `code/thirdparty/`, and creates `code/build/fpsi`. This step
-   requires root or `sudo`; set `FPSI_SKIP_SYSTEM_PACKAGES=1` when the packages are
-   already installed.
+   The build script uses `gcc-13`/`g++-13` by default, installs the required Ubuntu
+   packages, fetches pinned dependencies into `code/thirdparty/`, and creates
+   `code/build/fpsi`. This step requires root or `sudo`; set
+   `FPSI_SKIP_SYSTEM_PACKAGES=1` when the packages are already installed.
 
    ```bash
    ./scripts/build/run.sh
@@ -120,7 +120,7 @@ or unique-block).
 |---|---|
 | `Illegal instruction` | Run `scripts/build/preflight.sh`; the host is usually ARM64 or is missing a required x86 instruction. |
 | Compiler process is killed | Lower parallelism, for example `JOBS=4 ./scripts/build/run.sh`, and check available memory. |
-| Compiler is missing or older than GCC 11 | Install `build-essential`, or select a matching pair with `CC` and `CXX`. |
+| Compiler is missing or older than GCC/G++ 13 | Install `gcc-13` and `g++-13`, or select a matching GCC/G++ 13+ pair with `CC` and `CXX`. |
 | `Compiler mismatch` | Move `code/build` and `code/thirdparty` aside, then rebuild; do not reuse libraries built with another toolchain. |
 | Incomplete dependency directory | Remove only the dependency directory named by `scripts/build/run.sh`, then rerun it. |
 | Runtime differs from the paper | Repeat the case and compare trends and communication rather than exact runtimes. |

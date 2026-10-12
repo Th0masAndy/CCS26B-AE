@@ -1,0 +1,47 @@
+FROM ubuntu:24.04
+
+LABEL org.opencontainers.image.description="FPSI artifact for AMD64 with AVX2, AES, PCLMUL and SSE4.2; AVX-512 is not required"
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    CFLAGS="-O3 -march=x86-64 -mtune=generic -mavx2 -maes -mpclmul" \
+    CXXFLAGS="-O3 -march=x86-64 -mtune=generic -mavx2 -maes -mpclmul" \
+    CMAKE_TOOLCHAIN_FILE=/opt/fpsi-avx2.cmake
+
+RUN printf '%s\n' 'set(NO_ARCH_NATIVE ON CACHE BOOL "" FORCE)' > "$CMAKE_TOOLCHAIN_FILE"
+
+WORKDIR /home
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    openssl \
+    build-essential \
+    gcc-13 \
+    g++-13 \
+    cmake \
+    git \
+    libtool \
+    autoconf \
+    automake \
+    pkg-config \
+    iproute2 \
+    python3 \
+    sudo \
+    nasm \
+    libssl-dev \
+    libgmp-dev \
+    wget \
+    time \
+    libfmt-dev \
+    && update-ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY . /home/FPSI
+
+RUN cd /home/FPSI && \
+    chmod +x scripts/build/*.sh scripts/reproduction/*.sh \
+        scripts/reproduction/*.py scripts/data/*.py && \
+    FPSI_SKIP_SYSTEM_PACKAGES=1 ./scripts/build/run.sh
+
+WORKDIR /home/FPSI
+
+CMD ["bash", "-c", "./scripts/build/preflight.sh && ./scripts/reproduction/run.sh --quick && exec bash"]

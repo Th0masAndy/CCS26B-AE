@@ -41,7 +41,7 @@ install_system_packages()
     fi
 
     local packages=(
-        build-essential cmake git libtool iproute2 python3 sudo nasm
+        build-essential gcc-13 g++-13 cmake git libtool iproute2 python3 sudo nasm
         libssl-dev libgmp-dev wget libfmt-dev time
     )
 
